@@ -13,8 +13,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/Joker666/asynq"
 	"github.com/gdamore/tcell/v2"
-	"github.com/hibiken/asynq"
 	"github.com/mattn/go-runewidth"
 )
 
@@ -164,7 +164,6 @@ func maxwidth(names []string) int {
 func rpad(s string, padding int) string {
 	tmpl := fmt.Sprintf("%%-%ds ", padding)
 	return fmt.Sprintf(tmpl, s)
-
 }
 
 // lpad adds padding to the left of a string.
@@ -178,7 +177,6 @@ func byteCount(b int64) string {
 	const unit = 1000
 	if b < unit {
 		return fmt.Sprintf("%d B", b)
-
 	}
 	div, exp := int64(unit), 0
 	for n := b / unit; n >= unit; n /= unit {

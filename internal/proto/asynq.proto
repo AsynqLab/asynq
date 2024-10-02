@@ -7,7 +7,7 @@ package asynq;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/hibiken/asynq/internal/proto";
+option go_package = "github.com/Joker666/asynq/internal/proto";
 
 // TaskMessage is the internal representation of a task with additional
 // metadata fields.
@@ -126,12 +126,12 @@ message WorkerInfo {
   // Time this worker started processing the task.
   google.protobuf.Timestamp start_time = 8;
 
-  // Deadline by which the worker needs to complete processing 
+  // Deadline by which the worker needs to complete processing
   // the task. If worker exceeds the deadline, the task will fail.
   google.protobuf.Timestamp deadline = 9;
 };
 
-// SchedulerEntry holds information about a periodic task registered 
+// SchedulerEntry holds information about a periodic task registered
 // with a scheduler.
 message SchedulerEntry {
 	// Identifier of the scheduler entry.

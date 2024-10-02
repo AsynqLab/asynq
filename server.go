@@ -15,9 +15,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hibiken/asynq/internal/base"
-	"github.com/hibiken/asynq/internal/log"
-	"github.com/hibiken/asynq/internal/rdb"
+	"github.com/Joker666/asynq/internal/base"
+	"github.com/Joker666/asynq/internal/log"
+	"github.com/Joker666/asynq/internal/rdb"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -103,7 +103,7 @@ type Config struct {
 	// If BaseContext is nil, the default is context.Background().
 	// If this is defined, then it MUST return a non-nil context
 	BaseContext func() context.Context
-	
+
 	// TaskCheckInterval specifies the interval between checks for new tasks to process when all queues are empty.
 	//
 	// If unset, zero or a negative value, the interval is set to 1 second.

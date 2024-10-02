@@ -16,9 +16,9 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/Joker666/asynq/internal/rdb"
 	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/fatih/color"
-	"github.com/hibiken/asynq/internal/rdb"
 	"github.com/spf13/cobra"
 )
 
@@ -120,7 +120,6 @@ func stats(cmd *cobra.Command, args []string) {
 			QueueStats: stats,
 			RedisInfo:  info,
 		})
-
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)

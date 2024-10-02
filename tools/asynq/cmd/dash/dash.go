@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Joker666/asynq"
 	"github.com/gdamore/tcell/v2"
-	"github.com/hibiken/asynq"
 )
 
 // viewType is an enum for dashboard views.
@@ -216,5 +216,4 @@ func Run(opts Options) {
 			d.Draw(&state)
 		}
 	}
-
 }

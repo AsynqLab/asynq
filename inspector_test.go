@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Joker666/asynq/internal/base"
+	"github.com/Joker666/asynq/internal/rdb"
+	h "github.com/Joker666/asynq/internal/testutil"
+	"github.com/Joker666/asynq/internal/timeutil"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
-	"github.com/hibiken/asynq/internal/base"
-	"github.com/hibiken/asynq/internal/rdb"
-	h "github.com/hibiken/asynq/internal/testutil"
-	"github.com/hibiken/asynq/internal/timeutil"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -52,7 +52,6 @@ func TestInspectorQueues(t *testing.T) {
 			t.Errorf("Queues() = %v, want %v; (-want, +got)\n%s", got, tc.queues, diff)
 		}
 	}
-
 }
 
 func TestInspectorDeleteQueue(t *testing.T) {
@@ -408,7 +407,6 @@ func TestInspectorGetQueueInfo(t *testing.T) {
 			continue
 		}
 	}
-
 }
 
 func TestInspectorHistory(t *testing.T) {
@@ -955,7 +953,7 @@ func TestInspectorListRetryTasks(t *testing.T) {
 			qname: "default",
 			want:  []*TaskInfo(nil),
 		},
-		// TODO(hibiken): ErrQueueNotFound when queue doesn't exist
+		// TODO(Joker666): ErrQueueNotFound when queue doesn't exist
 	}
 
 	for _, tc := range tests {
@@ -3496,7 +3494,7 @@ func TestInspectorGroups(t *testing.T) {
 		},
 	}
 
-	var sortGroupInfosOpt = cmp.Transformer(
+	sortGroupInfosOpt := cmp.Transformer(
 		"SortGroupInfos",
 		func(in []*GroupInfo) []*GroupInfo {
 			out := append([]*GroupInfo(nil), in...)

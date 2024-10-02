@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Joker666/asynq/internal/base"
+	"github.com/Joker666/asynq/internal/timeutil"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
-	"github.com/hibiken/asynq/internal/base"
-	"github.com/hibiken/asynq/internal/timeutil"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -345,7 +345,8 @@ func SeedAllGroups(tb testing.TB, r redis.UniversalClient, groups map[string]map
 }
 
 func seedRedisList(tb testing.TB, c redis.UniversalClient, key string,
-	msgs []*base.TaskMessage, state base.TaskState) {
+	msgs []*base.TaskMessage, state base.TaskState,
+) {
 	tb.Helper()
 	for _, msg := range msgs {
 		encoded := MustMarshal(tb, msg)
@@ -372,7 +373,8 @@ func seedRedisList(tb testing.TB, c redis.UniversalClient, key string,
 }
 
 func seedRedisZSet(tb testing.TB, c redis.UniversalClient, key string,
-	items []base.Z, state base.TaskState) {
+	items []base.Z, state base.TaskState,
+) {
 	tb.Helper()
 	for _, item := range items {
 		msg := item.Message
@@ -487,7 +489,8 @@ func GetGroupEntries(tb testing.TB, r redis.UniversalClient, qname, groupKey str
 
 // Retrieves all messages stored under `keyFn(qname)` key in redis list.
 func getMessagesFromList(tb testing.TB, r redis.UniversalClient, qname string,
-	keyFn func(qname string) string, state base.TaskState) []*base.TaskMessage {
+	keyFn func(qname string) string, state base.TaskState,
+) []*base.TaskMessage {
 	tb.Helper()
 	ids := r.LRange(context.Background(), keyFn(qname), 0, -1).Val()
 	var msgs []*base.TaskMessage
@@ -504,7 +507,8 @@ func getMessagesFromList(tb testing.TB, r redis.UniversalClient, qname string,
 
 // Retrieves all messages stored under `keyFn(qname)` key in redis zset (sorted-set).
 func getMessagesFromZSet(tb testing.TB, r redis.UniversalClient, qname string,
-	keyFn func(qname string) string, state base.TaskState) []*base.TaskMessage {
+	keyFn func(qname string) string, state base.TaskState,
+) []*base.TaskMessage {
 	tb.Helper()
 	ids := r.ZRange(context.Background(), keyFn(qname), 0, -1).Val()
 	var msgs []*base.TaskMessage
@@ -521,7 +525,8 @@ func getMessagesFromZSet(tb testing.TB, r redis.UniversalClient, qname string,
 
 // Retrieves all messages along with their scores stored under `keyFn(qname)` key in redis zset (sorted-set).
 func getMessagesFromZSetWithScores(tb testing.TB, r redis.UniversalClient,
-	qname string, keyFn func(qname string) string, state base.TaskState) []base.Z {
+	qname string, keyFn func(qname string) string, state base.TaskState,
+) []base.Z {
 	tb.Helper()
 	zs := r.ZRangeWithScores(context.Background(), keyFn(qname), 0, -1).Val()
 	var res []base.Z

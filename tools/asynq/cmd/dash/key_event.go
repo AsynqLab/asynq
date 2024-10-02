@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/Joker666/asynq"
 	"github.com/gdamore/tcell/v2"
-	"github.com/hibiken/asynq"
 )
 
 // keyEventHandler handles keyboard events and updates the state.
@@ -211,7 +211,6 @@ func (h *keyEventHandler) enterKeyQueueDetails() {
 		h.resetTicker()
 		d.Draw(state)
 	}
-
 }
 
 func (h *keyEventHandler) handleLeftKey() {

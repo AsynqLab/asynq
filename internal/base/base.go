@@ -14,10 +14,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Joker666/asynq/internal/errors"
+	pb "github.com/Joker666/asynq/internal/proto"
+	"github.com/Joker666/asynq/internal/timeutil"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/hibiken/asynq/internal/errors"
-	pb "github.com/hibiken/asynq/internal/proto"
-	"github.com/hibiken/asynq/internal/timeutil"
 	"github.com/redis/go-redis/v9"
 	"google.golang.org/protobuf/proto"
 )

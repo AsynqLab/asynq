@@ -11,10 +11,10 @@ import (
 	"math"
 	"time"
 
+	"github.com/Joker666/asynq/internal/base"
+	"github.com/Joker666/asynq/internal/errors"
+	"github.com/Joker666/asynq/internal/timeutil"
 	"github.com/google/uuid"
-	"github.com/hibiken/asynq/internal/base"
-	"github.com/hibiken/asynq/internal/errors"
-	"github.com/hibiken/asynq/internal/timeutil"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/cast"
 )

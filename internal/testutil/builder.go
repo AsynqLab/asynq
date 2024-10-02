@@ -7,8 +7,8 @@ package testutil
 import (
 	"time"
 
+	"github.com/Joker666/asynq/internal/base"
 	"github.com/google/uuid"
-	"github.com/hibiken/asynq/internal/base"
 )
 
 func makeDefaultTaskMessage() *base.TaskMessage {

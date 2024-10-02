@@ -14,14 +14,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Joker666/asynq/internal/base"
+	"github.com/Joker666/asynq/internal/errors"
+	"github.com/Joker666/asynq/internal/log"
+	"github.com/Joker666/asynq/internal/rdb"
+	h "github.com/Joker666/asynq/internal/testutil"
+	"github.com/Joker666/asynq/internal/timeutil"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/hibiken/asynq/internal/base"
-	"github.com/hibiken/asynq/internal/errors"
-	"github.com/hibiken/asynq/internal/log"
-	"github.com/hibiken/asynq/internal/rdb"
-	h "github.com/hibiken/asynq/internal/testutil"
-	"github.com/hibiken/asynq/internal/timeutil"
 )
 
 var taskCmpOpts = []cmp.Option{
@@ -225,7 +225,7 @@ func TestProcessorSuccessWithMultipleQueues(t *testing.T) {
 	}
 }
 
-// https://github.com/hibiken/asynq/issues/166
+// https://github.com/Joker666/asynq/issues/166
 func TestProcessTasksWithLargeNumberInPayload(t *testing.T) {
 	r := setup(t)
 	defer r.Close()
@@ -927,7 +927,6 @@ func TestProcessorComputeDeadline(t *testing.T) {
 }
 
 func TestReturnPanicError(t *testing.T) {
-
 	task := NewTask("gen_thumbnail", h.JSON(map[string]interface{}{"src": "some/img/path"}))
 
 	tests := []struct {

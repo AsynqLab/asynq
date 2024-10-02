@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Joker666/asynq/internal/timeutil"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
-	"github.com/hibiken/asynq/internal/timeutil"
 )
 
 func TestTaskKey(t *testing.T) {
@@ -216,7 +216,7 @@ func TestProcessedKey(t *testing.T) {
 	}{
 		{"default", time.Date(2019, 11, 14, 10, 30, 1, 1, time.UTC), "asynq:{default}:processed:2019-11-14"},
 		{"critical", time.Date(2020, 12, 1, 1, 0, 1, 1, time.UTC), "asynq:{critical}:processed:2020-12-01"},
-		{"default", time.Date(2020, 1, 6, 15, 02, 1, 1, time.UTC), "asynq:{default}:processed:2020-01-06"},
+		{"default", time.Date(2020, 1, 6, 15, 0o2, 1, 1, time.UTC), "asynq:{default}:processed:2020-01-06"},
 	}
 
 	for _, tc := range tests {
@@ -235,7 +235,7 @@ func TestFailedKey(t *testing.T) {
 	}{
 		{"default", time.Date(2019, 11, 14, 10, 30, 1, 1, time.UTC), "asynq:{default}:failed:2019-11-14"},
 		{"custom", time.Date(2020, 12, 1, 1, 0, 1, 1, time.UTC), "asynq:{custom}:failed:2020-12-01"},
-		{"low", time.Date(2020, 1, 6, 15, 02, 1, 1, time.UTC), "asynq:{low}:failed:2020-01-06"},
+		{"low", time.Date(2020, 1, 6, 15, 0o2, 1, 1, time.UTC), "asynq:{low}:failed:2020-01-06"},
 	}
 
 	for _, tc := range tests {
@@ -334,10 +334,12 @@ func TestUniqueKey(t *testing.T) {
 	payload2 := toBytes(map[string]interface{}{"b": "hello", "c": true, "a": 123})
 	payload3 := toBytes(map[string]interface{}{
 		"address": map[string]string{"line": "123 Main St", "city": "Boston", "state": "MA"},
-		"names":   []string{"bob", "mike", "rob"}})
+		"names":   []string{"bob", "mike", "rob"},
+	})
 	payload4 := toBytes(map[string]interface{}{
 		"time":     time.Date(2020, time.July, 28, 0, 0, 0, 0, time.UTC),
-		"duration": time.Hour})
+		"duration": time.Hour,
+	})
 
 	checksum := func(data []byte) string {
 		sum := md5.Sum(data)
@@ -695,7 +697,7 @@ func TestCancelationsConcurrentAccess(t *testing.T) {
 	_, cancel1 := context.WithCancel(context.Background())
 	_, cancel2 := context.WithCancel(context.Background())
 	_, cancel3 := context.WithCancel(context.Background())
-	var key1, key2, key3 = "key1", "key2", "key3"
+	key1, key2, key3 := "key1", "key2", "key3"
 
 	var wg sync.WaitGroup
 

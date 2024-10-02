@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Joker666/asynq"
 	"github.com/gdamore/tcell/v2"
 	"github.com/google/go-cmp/cmp"
-	"github.com/hibiken/asynq"
 )
 
 func makeKeyEventHandler(t *testing.T, state *State) *keyEventHandler {
@@ -220,7 +220,6 @@ func TestKeyEventHandler(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 /*** fake implementation for tests ***/

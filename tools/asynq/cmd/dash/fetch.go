@@ -7,8 +7,8 @@ package dash
 import (
 	"sort"
 
+	"github.com/Joker666/asynq"
 	"github.com/gdamore/tcell/v2"
-	"github.com/hibiken/asynq"
 )
 
 type fetcher interface {
@@ -118,7 +118,8 @@ func (f *dataFetcher) fetchAggregatingTasks(qname, group string, pageSize, pageN
 }
 
 func fetchAggregatingTasks(i *asynq.Inspector, qname, group string, pageSize, pageNum int,
-	tasksCh chan<- []*asynq.TaskInfo, errorCh chan<- error) {
+	tasksCh chan<- []*asynq.TaskInfo, errorCh chan<- error,
+) {
 	tasks, err := i.ListAggregatingTasks(qname, group, asynq.PageSize(pageSize), asynq.Page(pageNum))
 	if err != nil {
 		errorCh <- err
@@ -139,7 +140,8 @@ func (f *dataFetcher) fetchTasks(qname string, taskState asynq.TaskState, pageSi
 }
 
 func fetchTasks(i *asynq.Inspector, qname string, taskState asynq.TaskState, pageSize, pageNum int,
-	tasksCh chan<- []*asynq.TaskInfo, errorCh chan<- error) {
+	tasksCh chan<- []*asynq.TaskInfo, errorCh chan<- error,
+) {
 	var (
 		tasks []*asynq.TaskInfo
 		err   error
