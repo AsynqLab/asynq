@@ -98,7 +98,7 @@ message ServerInfo {
 
 // WorkerInfo holds information about a running worker.
 message WorkerInfo {
-  // Host matchine this worker is running on.
+  // Host machine this worker is running on.
   string host = 1;
 
   // PID of the process in which this worker is running.
