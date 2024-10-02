@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        go-version: [1.20.x, 1.21.x]
+        go-version: [1.22.x, 1.23.x]
     runs-on: ${{ matrix.os }}
     services:
       redis:
@@ -45,7 +45,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        go-version: [1.20.x, 1.21.x]
+        go-version: [1.22.x, 1.23.x]
     runs-on: ${{ matrix.os }}
     services:
       redis:
@@ -66,4 +66,3 @@ jobs:
 
       - name: Test tools module
         run: cd tools && go test -race -v ./... && cd ..
-
