@@ -1,7 +1,3 @@
-// Copyright 2020 Kentaro Hibino. All rights reserved.
-// Use of this source code is governed by a MIT license
-// that can be found in the LICENSE file.
-
 package asynq
 
 import (
@@ -183,25 +179,25 @@ func newTaskInfo(msg *base.TaskMessage, state base.TaskState, nextProcessAt time
 type TaskState int
 
 const (
-	// Indicates that the task is currently being processed by Handler.
+	// TaskStateActive Indicates that the task is currently being processed by Handler.
 	TaskStateActive TaskState = iota + 1
 
-	// Indicates that the task is ready to be processed by Handler.
+	// TaskStatePending Indicates that the task is ready to be processed by Handler.
 	TaskStatePending
 
-	// Indicates that the task is scheduled to be processed some time in the future.
+	// TaskStateScheduled Indicates that the task is scheduled to be processed some time in the future.
 	TaskStateScheduled
 
-	// Indicates that the task has previously failed and scheduled to be processed some time in the future.
+	// TaskStateRetry Indicates that the task has previously failed and scheduled to be processed some time in the future.
 	TaskStateRetry
 
-	// Indicates that the task is archived and stored for inspection purposes.
+	// TaskStateArchived Indicates that the task is archived and stored for inspection purposes.
 	TaskStateArchived
 
-	// Indicates that the task is processed successfully and retained until the retention TTL expires.
+	// TaskStateCompleted Indicates that the task is processed successfully and retained until the retention TTL expires.
 	TaskStateCompleted
 
-	// Indicates that the task is waiting in a group to be aggregated into one task.
+	// TaskStateAggregating Indicates that the task is waiting in a group to be aggregated into one task.
 	TaskStateAggregating
 )
 

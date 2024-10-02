@@ -1,7 +1,3 @@
-// Copyright 2020 Kentaro Hibino. All rights reserved.
-// Use of this source code is governed by a MIT license
-// that can be found in the LICENSE file.
-
 package asynq
 
 import (
@@ -539,7 +535,7 @@ func NewServer(r RedisConnOpt, cfg Config) *Server {
 		baseCtxFn:         baseCtxFn,
 		isFailureFunc:     isFailureFunc,
 		syncCh:            syncCh,
-		cancelations:      cancels,
+		cancellations:     cancels,
 		concurrency:       n,
 		queues:            queues,
 		strictPriority:    cfg.StrictPriority,

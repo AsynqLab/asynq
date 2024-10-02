@@ -1,7 +1,3 @@
-// Copyright 2020 Kentaro Hibino. All rights reserved.
-// Use of this source code is governed by a MIT license
-// that can be found in the LICENSE file.
-
 package asynq
 
 import (
@@ -65,8 +61,8 @@ type processor struct {
 	// abort channel communicates to the in-flight worker goroutines to stop.
 	abort chan struct{}
 
-	// cancelations is a set of cancel functions for all active tasks.
-	cancelations *base.Cancelations
+	// cancellations is a set of cancel functions for all active tasks.
+	cancellations *base.Cancelations
 
 	starting chan<- *workerInfo
 	finished chan<- *base.TaskMessage
@@ -80,7 +76,7 @@ type processorParams struct {
 	taskCheckInterval time.Duration
 	isFailureFunc     func(error) bool
 	syncCh            chan<- *syncRequest
-	cancelations      *base.Cancelations
+	cancellations     *base.Cancelations
 	concurrency       int
 	queues            map[string]int
 	strictPriority    bool
@@ -108,7 +104,7 @@ func newProcessor(params processorParams) *processor {
 		retryDelayFunc:    params.retryDelayFunc,
 		isFailureFunc:     params.isFailureFunc,
 		syncRequestCh:     params.syncCh,
-		cancelations:      params.cancelations,
+		cancellations:     params.cancellations,
 		errLogLimiter:     rate.NewLimiter(rate.Every(3*time.Second), 1),
 		sema:              make(chan struct{}, params.concurrency),
 		done:              make(chan struct{}),
@@ -202,10 +198,10 @@ func (p *processor) exec() {
 			}()
 
 			ctx, cancel := asynqcontext.New(p.baseCtxFn(), msg, deadline)
-			p.cancelations.Add(msg.ID, cancel)
+			p.cancellations.Add(msg.ID, cancel)
 			defer func() {
 				cancel()
-				p.cancelations.Delete(msg.ID)
+				p.cancellations.Delete(msg.ID)
 			}()
 
 			// check context before starting a worker goroutine.

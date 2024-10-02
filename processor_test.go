@@ -1,7 +1,3 @@
-// Copyright 2020 Kentaro Hibino. All rights reserved.
-// Use of this source code is governed by a MIT license
-// that can be found in the LICENSE file.
-
 package asynq
 
 import (
@@ -70,7 +66,7 @@ func newProcessorForTest(t *testing.T, r *rdb.RDB, h Handler) *processor {
 		taskCheckInterval: defaultTaskCheckInterval,
 		isFailureFunc:     defaultIsFailureFunc,
 		syncCh:            syncCh,
-		cancelations:      base.NewCancelations(),
+		cancellations:     base.NewCancelations(),
 		concurrency:       10,
 		queues:            defaultQueueConfig,
 		strictPriority:    false,
@@ -547,7 +543,7 @@ func TestProcessorWithExpiredLease(t *testing.T) {
 			retryDelayFunc:    DefaultRetryDelayFunc,
 			isFailureFunc:     defaultIsFailureFunc,
 			syncCh:            syncCh,
-			cancelations:      base.NewCancelations(),
+			cancellations:     base.NewCancelations(),
 			concurrency:       10,
 			queues:            defaultQueueConfig,
 			strictPriority:    false,
@@ -702,7 +698,7 @@ func TestProcessorWithStrictPriority(t *testing.T) {
 			retryDelayFunc:    DefaultRetryDelayFunc,
 			isFailureFunc:     defaultIsFailureFunc,
 			syncCh:            syncCh,
-			cancelations:      base.NewCancelations(),
+			cancellations:     base.NewCancelations(),
 			concurrency:       1, // Set concurrency to 1 to make sure tasks are processed one at a time.
 			queues:            queueCfg,
 			strictPriority:    true,
