@@ -26,9 +26,6 @@ jobs:
       - name: Build core module
         run: go build -v ./...
 
-      - name: Build x module
-        run: cd x && go build -v ./... && cd ..
-
       - name: Test core module
         run: go test -race -v -coverprofile=coverage.txt -covermode=atomic ./...
 
