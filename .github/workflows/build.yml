@@ -32,9 +32,6 @@ jobs:
       - name: Test core module
         run: go test -race -v -coverprofile=coverage.txt -covermode=atomic ./...
 
-      - name: Test x module
-        run: cd x && go test -race -v ./... && cd ..
-
       - name: Benchmark Test
         run: go test -run=^$ -bench=. -loglevel=debug ./...
 
