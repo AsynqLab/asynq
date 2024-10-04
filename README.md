@@ -6,7 +6,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/AsynqLab/asynq)](https://goreportcard.com/report/github.com/AsynqLab/asynq)
 ![Build Status](https://github.com/AsynqLab/asynq/workflows/build/badge.svg)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Gitter chat](https://badges.gitter.im/go-asynq/gitter.svg)](https://gitter.im/go-asynq/community)
+[![Gitter chat](https://badges.gitter.im/AsynqLab/gitter.svg)](https://gitter.im/AsynqLab/community)
 
 Asynq is a Go library for queueing tasks and processing them asynchronously with workers. It's backed by [Redis](https://redis.io/) and is designed to be scalable yet easy to get started.
 
