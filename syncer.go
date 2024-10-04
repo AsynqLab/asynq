@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Joker666/asynq/internal/log"
+	"github.com/AsynqLab/asynq/internal/log"
 )
 
 // syncer is responsible for queuing up failed requests to redis and retry

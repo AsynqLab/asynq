@@ -7,7 +7,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/Joker666/asynq"
+	"github.com/AsynqLab/asynq"
 	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/spf13/cobra"
 )

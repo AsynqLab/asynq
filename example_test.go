@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/Joker666/asynq"
+	"github.com/AsynqLab/asynq"
 	"golang.org/x/sys/unix"
 )
 

@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Joker666/asynq/internal/base"
-	"github.com/Joker666/asynq/internal/log"
+	"github.com/AsynqLab/asynq/internal/base"
+	"github.com/AsynqLab/asynq/internal/log"
 )
 
 // A janitor is responsible for deleting expired completed tasks from the specified

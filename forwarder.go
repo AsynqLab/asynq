@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Joker666/asynq/internal/base"
-	"github.com/Joker666/asynq/internal/log"
+	"github.com/AsynqLab/asynq/internal/base"
+	"github.com/AsynqLab/asynq/internal/log"
 )
 
 // A forwarder is responsible for moving scheduled and retry tasks to pending state

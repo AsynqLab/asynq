@@ -5,8 +5,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/Joker666/asynq"
-	"github.com/Joker666/asynq/internal/errors"
+	"github.com/AsynqLab/asynq"
+	"github.com/AsynqLab/asynq/internal/errors"
 	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"

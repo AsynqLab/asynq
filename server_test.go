@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Joker666/asynq/internal/rdb"
-	"github.com/Joker666/asynq/internal/testbroker"
-	"github.com/Joker666/asynq/internal/testutil"
+	"github.com/AsynqLab/asynq/internal/rdb"
+	"github.com/AsynqLab/asynq/internal/testbroker"
+	"github.com/AsynqLab/asynq/internal/testutil"
 	"go.uber.org/goleak"
 )
 

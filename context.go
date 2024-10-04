@@ -3,7 +3,7 @@ package asynq
 import (
 	"context"
 
-	asynqcontext "github.com/Joker666/asynq/internal/context"
+	asynqcontext "github.com/AsynqLab/asynq/internal/context"
 )
 
 // GetTaskID extracts a task ID from a context, if any.

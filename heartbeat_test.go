@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Joker666/asynq/internal/base"
-	"github.com/Joker666/asynq/internal/rdb"
-	"github.com/Joker666/asynq/internal/testbroker"
-	h "github.com/Joker666/asynq/internal/testutil"
-	"github.com/Joker666/asynq/internal/timeutil"
+	"github.com/AsynqLab/asynq/internal/base"
+	"github.com/AsynqLab/asynq/internal/rdb"
+	"github.com/AsynqLab/asynq/internal/testbroker"
+	h "github.com/AsynqLab/asynq/internal/testutil"
+	"github.com/AsynqLab/asynq/internal/timeutil"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 )

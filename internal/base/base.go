@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Joker666/asynq/internal/errors"
-	pb "github.com/Joker666/asynq/internal/proto"
-	"github.com/Joker666/asynq/internal/timeutil"
+	"github.com/AsynqLab/asynq/internal/errors"
+	pb "github.com/AsynqLab/asynq/internal/proto"
+	"github.com/AsynqLab/asynq/internal/timeutil"
 	"github.com/redis/go-redis/v9"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"

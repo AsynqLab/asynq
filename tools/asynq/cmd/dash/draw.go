@@ -9,7 +9,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/Joker666/asynq"
+	"github.com/AsynqLab/asynq"
 	"github.com/gdamore/tcell/v2"
 	"github.com/mattn/go-runewidth"
 )

@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Joker666/asynq/internal/base"
-	"github.com/Joker666/asynq/internal/rdb"
-	h "github.com/Joker666/asynq/internal/testutil"
+	"github.com/AsynqLab/asynq/internal/base"
+	"github.com/AsynqLab/asynq/internal/rdb"
+	h "github.com/AsynqLab/asynq/internal/testutil"
 	"github.com/google/go-cmp/cmp"
 )
 

@@ -3,7 +3,7 @@ package dash
 import (
 	"sort"
 
-	"github.com/Joker666/asynq"
+	"github.com/AsynqLab/asynq"
 	"github.com/gdamore/tcell/v2"
 )
 

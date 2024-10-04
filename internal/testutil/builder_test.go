@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Joker666/asynq/internal/base"
+	"github.com/AsynqLab/asynq/internal/base"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 )

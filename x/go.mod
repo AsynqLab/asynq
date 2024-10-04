@@ -1,11 +1,11 @@
-module github.com/Joker666/asynq/x
+module github.com/AsynqLab/asynq/x
 
 go 1.23
 
 toolchain go1.23.1
 
 require (
-	github.com/Joker666/asynq v0.24.2
+	github.com/AsynqLab/asynq v0.24.2
 	github.com/google/uuid v1.6.0
 	github.com/prometheus/client_golang v1.20.4
 	github.com/redis/go-redis/v9 v9.6.1

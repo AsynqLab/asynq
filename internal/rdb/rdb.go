@@ -7,9 +7,9 @@ import (
 	"math"
 	"time"
 
-	"github.com/Joker666/asynq/internal/base"
-	"github.com/Joker666/asynq/internal/errors"
-	"github.com/Joker666/asynq/internal/timeutil"
+	"github.com/AsynqLab/asynq/internal/base"
+	"github.com/AsynqLab/asynq/internal/errors"
+	"github.com/AsynqLab/asynq/internal/timeutil"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/cast"

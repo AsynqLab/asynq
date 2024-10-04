@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Joker666/asynq/internal/base"
-	"github.com/Joker666/asynq/internal/errors"
-	h "github.com/Joker666/asynq/internal/testutil"
-	"github.com/Joker666/asynq/internal/timeutil"
+	"github.com/AsynqLab/asynq/internal/base"
+	"github.com/AsynqLab/asynq/internal/errors"
+	h "github.com/AsynqLab/asynq/internal/testutil"
+	"github.com/AsynqLab/asynq/internal/timeutil"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
@@ -1998,7 +1998,7 @@ func TestArchive(t *testing.T) {
 	}
 	errMsg := "SMTP server not responding"
 
-	// TODO(Joker666): add test cases for trimming
+	// TODO(AsynqLab): add test cases for trimming
 	tests := []struct {
 		active       map[string][]*base.TaskMessage
 		lease        map[string][]base.Z

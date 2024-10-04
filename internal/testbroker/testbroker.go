@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Joker666/asynq/internal/base"
+	"github.com/AsynqLab/asynq/internal/base"
 	"github.com/redis/go-redis/v9"
 )
 

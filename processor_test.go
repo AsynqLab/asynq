@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Joker666/asynq/internal/base"
-	"github.com/Joker666/asynq/internal/errors"
-	"github.com/Joker666/asynq/internal/log"
-	"github.com/Joker666/asynq/internal/rdb"
-	h "github.com/Joker666/asynq/internal/testutil"
-	"github.com/Joker666/asynq/internal/timeutil"
+	"github.com/AsynqLab/asynq/internal/base"
+	"github.com/AsynqLab/asynq/internal/errors"
+	"github.com/AsynqLab/asynq/internal/log"
+	"github.com/AsynqLab/asynq/internal/rdb"
+	h "github.com/AsynqLab/asynq/internal/testutil"
+	"github.com/AsynqLab/asynq/internal/timeutil"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
@@ -221,7 +221,7 @@ func TestProcessorSuccessWithMultipleQueues(t *testing.T) {
 	}
 }
 
-// https://github.com/Joker666/asynq/issues/166
+// https://github.com/AsynqLab/asynq/issues/166
 func TestProcessTasksWithLargeNumberInPayload(t *testing.T) {
 	r := setup(t)
 	defer r.Close()

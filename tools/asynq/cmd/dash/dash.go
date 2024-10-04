@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Joker666/asynq"
+	"github.com/AsynqLab/asynq"
 	"github.com/gdamore/tcell/v2"
 )
 

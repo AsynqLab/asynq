@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/Joker666/asynq/tools/asynq/cmd/dash"
+	"github.com/AsynqLab/asynq/tools/asynq/cmd/dash"
 	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/spf13/cobra"
 )

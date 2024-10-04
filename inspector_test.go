@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Joker666/asynq/internal/base"
-	"github.com/Joker666/asynq/internal/rdb"
-	h "github.com/Joker666/asynq/internal/testutil"
-	"github.com/Joker666/asynq/internal/timeutil"
+	"github.com/AsynqLab/asynq/internal/base"
+	"github.com/AsynqLab/asynq/internal/rdb"
+	h "github.com/AsynqLab/asynq/internal/testutil"
+	"github.com/AsynqLab/asynq/internal/timeutil"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
@@ -949,7 +949,7 @@ func TestInspectorListRetryTasks(t *testing.T) {
 			qname: "default",
 			want:  []*TaskInfo(nil),
 		},
-		// TODO(Joker666): ErrQueueNotFound when queue doesn't exist
+		// TODO(AsynqLab): ErrQueueNotFound when queue doesn't exist
 	}
 
 	for _, tc := range tests {

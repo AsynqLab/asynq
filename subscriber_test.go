@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Joker666/asynq/internal/base"
-	"github.com/Joker666/asynq/internal/rdb"
-	"github.com/Joker666/asynq/internal/testbroker"
+	"github.com/AsynqLab/asynq/internal/base"
+	"github.com/AsynqLab/asynq/internal/rdb"
+	"github.com/AsynqLab/asynq/internal/testbroker"
 )
 
 func TestSubscriber(t *testing.T) {

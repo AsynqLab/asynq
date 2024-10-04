@@ -1,4 +1,4 @@
-module github.com/Joker666/asynq
+module github.com/AsynqLab/asynq
 
 go 1.23
 

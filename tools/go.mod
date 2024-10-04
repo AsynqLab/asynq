@@ -1,12 +1,12 @@
-module github.com/Joker666/asynq/tools
+module github.com/AsynqLab/asynq/tools
 
 go 1.23
 
 toolchain go1.23.1
 
 require (
-	github.com/Joker666/asynq v0.24.2
-	github.com/Joker666/asynq/x v0.0.0-20241002030631-95a67ed7ab45
+	github.com/AsynqLab/asynq v0.24.2
+	github.com/AsynqLab/asynq/x v0.0.0-20241002030631-95a67ed7ab45
 	github.com/MakeNowJust/heredoc/v2 v2.0.1
 	github.com/fatih/color v1.17.0
 	github.com/gdamore/tcell/v2 v2.5.1

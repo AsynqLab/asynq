@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Joker666/asynq"
-	"github.com/Joker666/asynq/internal/base"
-	asynqcontext "github.com/Joker666/asynq/internal/context"
+	"github.com/AsynqLab/asynq"
+	"github.com/AsynqLab/asynq/internal/base"
+	asynqcontext "github.com/AsynqLab/asynq/internal/context"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 )

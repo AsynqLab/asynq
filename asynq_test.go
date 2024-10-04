@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Joker666/asynq/internal/log"
-	h "github.com/Joker666/asynq/internal/testutil"
+	"github.com/AsynqLab/asynq/internal/log"
+	h "github.com/AsynqLab/asynq/internal/testutil"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/redis/go-redis/v9"

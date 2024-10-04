@@ -10,9 +10,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/Joker666/asynq"
-	"github.com/Joker666/asynq/internal/base"
-	"github.com/Joker666/asynq/internal/rdb"
+	"github.com/AsynqLab/asynq"
+	"github.com/AsynqLab/asynq/internal/base"
+	"github.com/AsynqLab/asynq/internal/rdb"
 	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/fatih/color"
 	"github.com/redis/go-redis/v9"
@@ -53,7 +53,7 @@ var rootCmd = &cobra.Command{
 		$ asynq task list --queue=myqueue --state=archived`),
 	Annotations: map[string]string{
 		"help:feedback": heredoc.Doc(`
-			Open an issue at https://github.com/Joker666/asynq/issues/new/choose`),
+			Open an issue at https://github.com/AsynqLab/asynq/issues/new/choose`),
 	},
 }
 

@@ -12,7 +12,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/Joker666/asynq/internal/rdb"
+	"github.com/AsynqLab/asynq/internal/rdb"
 	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"

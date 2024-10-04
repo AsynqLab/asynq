@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/Joker666/asynq/internal/base"
+	"github.com/AsynqLab/asynq/internal/base"
 )
 
 // A taskMetadata holds task scoped data to put in context.

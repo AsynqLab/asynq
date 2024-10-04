@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Joker666/asynq/internal/timeutil"
+	"github.com/AsynqLab/asynq/internal/timeutil"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 )

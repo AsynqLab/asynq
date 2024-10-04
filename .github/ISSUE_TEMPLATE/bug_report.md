@@ -3,7 +3,7 @@ name: Bug report
 about: Create a report to help us improve
 title: "[BUG] Description of the bug"
 labels: bug
-assignees: Joker666
+assignees: AsynqLab
 ---
 
 **Describe the bug**
