@@ -85,7 +85,6 @@ func (mux *ServeMux) match(typename string) (h Handler, pattern string) {
 		}
 	}
 	return nil, ""
-
 }
 
 // Handle registers the handler for the given pattern.
@@ -148,5 +147,5 @@ func NotFound(ctx context.Context, task *Task) error {
 	return fmt.Errorf("handler not found for task %q", task.Type())
 }
 
-// NotFoundHandler returns a simple task handler that returns a ``not found`` error.
+// NotFoundHandler returns a simple task handler that returns a “not found“ error.
 func NotFoundHandler() Handler { return HandlerFunc(NotFound) }

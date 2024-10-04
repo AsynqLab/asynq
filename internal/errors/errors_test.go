@@ -57,7 +57,7 @@ func TestErrorString(t *testing.T) {
 }
 
 func TestErrorIs(t *testing.T) {
-	var ErrCustom = New("custom sentinel error")
+	ErrCustom := New("custom sentinel error")
 
 	tests := []struct {
 		desc   string

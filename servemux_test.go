@@ -7,8 +7,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-var called string    // identity of the handler that was called.
-var invoked []string // list of middlewares in the order they were invoked.
+var (
+	called  string   // identity of the handler that was called.
+	invoked []string // list of middlewares in the order they were invoked.
+)
 
 // makeFakeHandler returns a handler that updates the global called variable
 // to the given identity.
@@ -20,7 +22,7 @@ func makeFakeHandler(identity string) Handler {
 }
 
 // makeFakeMiddleware returns a middleware function that appends the given identity
-//to the global invoked slice.
+// to the global invoked slice.
 func makeFakeMiddleware(identity string) MiddlewareFunc {
 	return func(next Handler) Handler {
 		return HandlerFunc(func(ctx context.Context, t *Task) error {
