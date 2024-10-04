@@ -1,7 +1,3 @@
-// Copyright 2022 Kentaro Hibino. All rights reserved.
-// Use of this source code is governed by a MIT license
-// that can be found in the LICENSE file.
-
 package dash
 
 import (
@@ -16,11 +12,12 @@ import (
 // ScreenDrawer is used to draw contents on screen.
 //
 // Usage example:
-//    d := NewScreenDrawer(s)
-//    d.Println("Hello world", mystyle)
-//    d.NL() // adds newline
-//    d.Print("foo", mystyle.Bold(true))
-//    d.Print("bar", mystyle.Italic(true))
+//
+//	d := NewScreenDrawer(s)
+//	d.Println("Hello world", mystyle)
+//	d.NL() // adds newline
+//	d.Print("foo", mystyle.Bold(true))
+//	d.Print("bar", mystyle.Italic(true))
 type ScreenDrawer struct {
 	l *LineDrawer
 }
