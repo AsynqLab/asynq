@@ -1,6 +1,6 @@
 <img src="https://user-images.githubusercontent.com/11155743/114697792-ffbfa580-9d26-11eb-8e5b-33bef69476dc.png" alt="Asynq logo" width="360px" />
 
-#### This is a fork of the execllent [Asynq](https://github.com/hibiken/asynq) library. The original library is no longer maintained. Please use this fork instead.
+#### This is a fork of the excellent [Asynq](https://github.com/hibiken/asynq) library. The original library is no longer maintained. Please use this fork instead.
 
 # Simple, reliable & efficient distributed task queue in Go
 
@@ -12,7 +12,7 @@
 
 Asynq is a Go library for queueing tasks and processing them asynchronously with workers. It's backed by [Redis](https://redis.io/) and is designed to be scalable yet easy to get started.
 
-Highlevel overview of how Asynq works:
+High level overview of how Asynq works:
 
 - Client puts tasks on a queue
 - Server pulls tasks off queues and starts a worker goroutine for each task
