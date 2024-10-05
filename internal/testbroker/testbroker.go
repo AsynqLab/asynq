@@ -186,22 +186,22 @@ func (tb *TestBroker) ClearServerState(host string, pid int, serverID string) er
 	return tb.real.ClearServerState(host, pid, serverID)
 }
 
-func (tb *TestBroker) CancelationPubSub() (*redis.PubSub, error) {
+func (tb *TestBroker) CancellationPubSub() (*redis.PubSub, error) {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return nil, errRedisDown
 	}
-	return tb.real.CancelationPubSub()
+	return tb.real.CancellationPubSub()
 }
 
-func (tb *TestBroker) PublishCancelation(id string) error {
+func (tb *TestBroker) PublishCancellation(id string) error {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return errRedisDown
 	}
-	return tb.real.PublishCancelation(id)
+	return tb.real.PublishCancellation(id)
 }
 
 func (tb *TestBroker) WriteResult(qname, id string, data []byte) (int, error) {

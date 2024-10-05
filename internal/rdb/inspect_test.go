@@ -1061,10 +1061,12 @@ func TestListScheduled(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client) // clean up db before each test case
 		h.SeedAllScheduledQueues(t, r.client, tc.scheduled)
 
-		got, err := r.ListScheduled(tc.qname, Pagination{Size: 20, Page: 0})
+		got, err := r.ListScheduled(ctx, tc.qname, Pagination{Size: 20, Page: 0})
 		op := fmt.Sprintf("r.ListScheduled(%q, Pagination{Size: 20, Page: 0})", tc.qname)
 		if err != nil {
 			t.Errorf("%s = %v, %v, want %v, nil", op, got, err, tc.want)
@@ -1107,7 +1109,9 @@ func TestListScheduledPagination(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got, err := r.ListScheduled(tc.qname, Pagination{Size: tc.size, Page: tc.page})
+		ctx := context.Background()
+
+		got, err := r.ListScheduled(ctx, tc.qname, Pagination{Size: tc.size, Page: tc.page})
 		op := fmt.Sprintf("r.ListScheduled(%q, Pagination{Size: %d, Page: %d})", tc.qname, tc.size, tc.page)
 		if err != nil {
 			t.Errorf("%s; %s returned error %v", tc.desc, op, err)
@@ -1217,10 +1221,12 @@ func TestListRetry(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client) // clean up db before each test case
 		h.SeedAllRetryQueues(t, r.client, tc.retry)
 
-		got, err := r.ListRetry(tc.qname, Pagination{Size: 20, Page: 0})
+		got, err := r.ListRetry(ctx, tc.qname, Pagination{Size: 20, Page: 0})
 		op := fmt.Sprintf("r.ListRetry(%q, Pagination{Size: 20, Page: 0})", tc.qname)
 		if err != nil {
 			t.Errorf("%s = %v, %v, want %v, nil", op, got, err, tc.want)
@@ -1237,6 +1243,7 @@ func TestListRetry(t *testing.T) {
 func TestListRetryPagination(t *testing.T) {
 	r := setup(t)
 	defer r.Close()
+
 	// create 100 tasks with an increasing number of wait time.
 	now := time.Now()
 	var seed []base.Z
@@ -1264,7 +1271,9 @@ func TestListRetryPagination(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got, err := r.ListRetry(tc.qname, Pagination{Size: tc.size, Page: tc.page})
+		ctx := context.Background()
+
+		got, err := r.ListRetry(ctx, tc.qname, Pagination{Size: tc.size, Page: tc.page})
 		op := fmt.Sprintf("r.ListRetry(%q, Pagination{Size: %d, Page: %d})",
 			tc.qname, tc.size, tc.page)
 		if err != nil {
@@ -1370,10 +1379,12 @@ func TestListArchived(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client) // clean up db before each test case
 		h.SeedAllArchivedQueues(t, r.client, tc.archived)
 
-		got, err := r.ListArchived(tc.qname, Pagination{Size: 20, Page: 0})
+		got, err := r.ListArchived(ctx, tc.qname, Pagination{Size: 20, Page: 0})
 		op := fmt.Sprintf("r.ListArchived(%q, Pagination{Size: 20, Page: 0})", tc.qname)
 		if err != nil {
 			t.Errorf("%s = %v, %v, want %v, nil", op, got, err, tc.want)
@@ -1414,7 +1425,9 @@ func TestListArchivedPagination(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got, err := r.ListArchived(tc.qname, Pagination{Size: tc.size, Page: tc.page})
+		ctx := context.Background()
+
+		got, err := r.ListArchived(ctx, tc.qname, Pagination{Size: tc.size, Page: tc.page})
 		op := fmt.Sprintf("r.ListArchived(Pagination{Size: %d, Page: %d})",
 			tc.size, tc.page)
 		if err != nil {
@@ -1510,10 +1523,12 @@ func TestListCompleted(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client) // clean up db before each test case
 		h.SeedAllCompletedQueues(t, r.client, tc.completed)
 
-		got, err := r.ListCompleted(tc.qname, Pagination{Size: 20, Page: 0})
+		got, err := r.ListCompleted(ctx, tc.qname, Pagination{Size: 20, Page: 0})
 		op := fmt.Sprintf("r.ListCompleted(%q, Pagination{Size: 20, Page: 0})", tc.qname)
 		if err != nil {
 			t.Errorf("%s = %v, %v, want %v, nil", op, got, err, tc.want)
@@ -1554,7 +1569,9 @@ func TestListCompletedPagination(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got, err := r.ListCompleted(tc.qname, Pagination{Size: tc.size, Page: tc.page})
+		ctx := context.Background()
+
+		got, err := r.ListCompleted(ctx, tc.qname, Pagination{Size: tc.size, Page: tc.page})
 		op := fmt.Sprintf("r.ListCompleted(Pagination{Size: %d, Page: %d})",
 			tc.size, tc.page)
 		if err != nil {
@@ -1653,6 +1670,8 @@ func TestListAggregating(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client)
 		h.SeedRedisSet(t, r.client, base.AllQueues, fxt.allQueues)
 		h.SeedRedisSets(t, r.client, fxt.allGroups)
@@ -1660,7 +1679,7 @@ func TestListAggregating(t *testing.T) {
 		h.SeedRedisZSets(t, r.client, fxt.groups)
 
 		t.Run(tc.desc, func(t *testing.T) {
-			got, err := r.ListAggregating(tc.qname, tc.gname, Pagination{})
+			got, err := r.ListAggregating(ctx, tc.qname, tc.gname, Pagination{})
 			if err != nil {
 				t.Fatalf("ListAggregating returned error: %v", err)
 			}
@@ -1774,7 +1793,9 @@ func TestListAggregatingPagination(t *testing.T) {
 		h.SeedRedisZSets(t, r.client, fxt.groups)
 
 		t.Run(tc.desc, func(t *testing.T) {
-			got, err := r.ListAggregating(tc.qname, tc.gname, Pagination{Page: tc.page, Size: tc.size})
+			ctx := context.Background()
+
+			got, err := r.ListAggregating(ctx, tc.qname, tc.gname, Pagination{Page: tc.page, Size: tc.size})
 			if err != nil {
 				t.Fatalf("ListAggregating returned error: %v", err)
 			}
@@ -1826,13 +1847,13 @@ func TestListTasksError(t *testing.T) {
 		if _, got := r.ListPending(ctx, tc.qname, pgn); !tc.match(got) {
 			t.Errorf("%s: ListPending returned %v", tc.desc, got)
 		}
-		if _, got := r.ListScheduled(tc.qname, pgn); !tc.match(got) {
+		if _, got := r.ListScheduled(ctx, tc.qname, pgn); !tc.match(got) {
 			t.Errorf("%s: ListScheduled returned %v", tc.desc, got)
 		}
-		if _, got := r.ListRetry(tc.qname, pgn); !tc.match(got) {
+		if _, got := r.ListRetry(ctx, tc.qname, pgn); !tc.match(got) {
 			t.Errorf("%s: ListRetry returned %v", tc.desc, got)
 		}
-		if _, got := r.ListArchived(tc.qname, pgn); !tc.match(got) {
+		if _, got := r.ListArchived(ctx, tc.qname, pgn); !tc.match(got) {
 			t.Errorf("%s: ListArchived returned %v", tc.desc, got)
 		}
 	}

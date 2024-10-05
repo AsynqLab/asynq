@@ -47,7 +47,7 @@ func TestSubscriber(t *testing.T) {
 		// wait for subscriber to establish connection to pubsub channel
 		time.Sleep(time.Second)
 
-		if err := rdbClient.PublishCancelation(tc.publishID); err != nil {
+		if err := rdbClient.PublishCancellation(tc.publishID); err != nil {
 			t.Fatalf("could not publish cancelation message: %v", err)
 		}
 
@@ -106,7 +106,7 @@ func TestSubscriberWithRedisDown(t *testing.T) {
 		called = true
 	})
 
-	if err := r.PublishCancelation(id); err != nil {
+	if err := r.PublishCancellation(id); err != nil {
 		t.Fatalf("could not publish cancelation message: %v", err)
 	}
 
