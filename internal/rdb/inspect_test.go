@@ -32,9 +32,11 @@ func TestAllQueues(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client)
 		for _, qname := range tc.queues {
-			if err := r.client.SAdd(context.Background(), base.AllQueues, qname).Err(); err != nil {
+			if err := r.client.SAdd(ctx, base.AllQueues, qname).Err(); err != nil {
 				t.Fatalf("could not initialize all queue set: %v", err)
 			}
 		}
@@ -274,6 +276,8 @@ func TestCurrentStats(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client) // clean up db before each test case
 		for _, qname := range tc.paused {
 			if err := r.Pause(qname); err != nil {
@@ -290,7 +294,7 @@ func TestCurrentStats(t *testing.T) {
 		h.SeedRedisZSets(t, r.client, tc.archived)
 		h.SeedRedisZSets(t, r.client, tc.completed)
 		h.SeedRedisZSets(t, r.client, tc.groups)
-		ctx := context.Background()
+
 		for qname, n := range tc.processed {
 			r.client.Set(ctx, base.ProcessedKey(qname, now), n, 0)
 		}
@@ -351,16 +355,18 @@ func TestHistoricalStats(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client)
 
-		r.client.SAdd(context.Background(), base.AllQueues, tc.qname)
+		r.client.SAdd(ctx, base.AllQueues, tc.qname)
 		// populate last n days data
 		for i := 0; i < tc.n; i++ {
 			ts := now.Add(-time.Duration(i) * 24 * time.Hour)
 			processedKey := base.ProcessedKey(tc.qname, ts)
 			failedKey := base.FailedKey(tc.qname, ts)
-			r.client.Set(context.Background(), processedKey, (i+1)*1000, 0)
-			r.client.Set(context.Background(), failedKey, (i+1)*10, 0)
+			r.client.Set(ctx, processedKey, (i+1)*1000, 0)
+			r.client.Set(ctx, failedKey, (i+1)*10, 0)
 		}
 
 		got, err := r.HistoricalStats(tc.qname, tc.n)
@@ -562,14 +568,17 @@ func TestGetTaskInfo(t *testing.T) {
 		},
 	}
 
+	ctx := context.Background()
+
 	h.SeedAllActiveQueues(t, r.client, fixtures.active)
 	h.SeedAllPendingQueues(t, r.client, fixtures.pending)
 	h.SeedAllScheduledQueues(t, r.client, fixtures.scheduled)
 	h.SeedAllRetryQueues(t, r.client, fixtures.retry)
 	h.SeedAllArchivedQueues(t, r.client, fixtures.archived)
 	h.SeedAllCompletedQueues(t, r.client, fixtures.completed)
+
 	// Write result data for the completed task.
-	if err := r.client.HSet(context.Background(), base.TaskKey(m6.Queue, m6.ID), "result", "foobar").Err(); err != nil {
+	if err := r.client.HSet(ctx, base.TaskKey(m6.Queue, m6.ID), "result", "foobar").Err(); err != nil {
 		t.Fatalf("Failed to write result data under task key: %v", err)
 	}
 
@@ -788,10 +797,12 @@ func TestListPending(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client) // clean up db before each test case
 		h.SeedAllPendingQueues(t, r.client, tc.pending)
 
-		got, err := r.ListPending(tc.qname, Pagination{Size: 20, Page: 0})
+		got, err := r.ListPending(ctx, tc.qname, Pagination{Size: 20, Page: 0})
 		op := fmt.Sprintf("r.ListPending(%q, Pagination{Size: 20, Page: 0})", tc.qname)
 		if err != nil {
 			t.Errorf("%s = %v, %v, want %v, nil", op, got, err, tc.want)
@@ -807,6 +818,7 @@ func TestListPending(t *testing.T) {
 func TestListPendingPagination(t *testing.T) {
 	r := setup(t)
 	defer r.Close()
+
 	var msgs []*base.TaskMessage
 	for i := 0; i < 100; i++ {
 		msg := h.NewTaskMessage(fmt.Sprintf("task %d", i), nil)
@@ -841,7 +853,9 @@ func TestListPendingPagination(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got, err := r.ListPending(tc.qname, Pagination{Size: tc.size, Page: tc.page})
+		ctx := context.Background()
+
+		got, err := r.ListPending(ctx, tc.qname, Pagination{Size: tc.size, Page: tc.page})
 		op := fmt.Sprintf("r.ListPending(%q, Pagination{Size: %d, Page: %d})", tc.qname, tc.size, tc.page)
 		if err != nil {
 			t.Errorf("%s; %s returned error %v", tc.desc, op, err)
@@ -907,10 +921,12 @@ func TestListActive(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client) // clean up db before each test case
 		h.SeedAllActiveQueues(t, r.client, tc.inProgress)
 
-		got, err := r.ListActive(tc.qname, Pagination{Size: 20, Page: 0})
+		got, err := r.ListActive(ctx, tc.qname, Pagination{Size: 20, Page: 0})
 		op := fmt.Sprintf("r.ListActive(%q, Pagination{Size: 20, Page: 0})", tc.qname)
 		if err != nil {
 			t.Errorf("%s = %v, %v, want %v, nil", op, got, err, tc.inProgress)
@@ -926,6 +942,7 @@ func TestListActive(t *testing.T) {
 func TestListActivePagination(t *testing.T) {
 	r := setup(t)
 	defer r.Close()
+
 	var msgs []*base.TaskMessage
 	for i := 0; i < 100; i++ {
 		msg := h.NewTaskMessage(fmt.Sprintf("task %d", i), nil)
@@ -950,7 +967,9 @@ func TestListActivePagination(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got, err := r.ListActive(tc.qname, Pagination{Size: tc.size, Page: tc.page})
+		ctx := context.Background()
+
+		got, err := r.ListActive(ctx, tc.qname, Pagination{Size: tc.size, Page: tc.page})
 		op := fmt.Sprintf("r.ListActive(%q, Pagination{Size: %d, Page: %d})", tc.qname, tc.size, tc.page)
 		if err != nil {
 			t.Errorf("%s; %s returned error %v", tc.desc, op, err)
@@ -1063,8 +1082,10 @@ func TestListScheduledPagination(t *testing.T) {
 	defer r.Close()
 	// create 100 tasks with an increasing number of wait time.
 	for i := 0; i < 100; i++ {
+		ctx := context.Background()
+
 		msg := h.NewTaskMessage(fmt.Sprintf("task %d", i), nil)
-		if err := r.Schedule(context.Background(), msg, time.Now().Add(time.Duration(i)*time.Second)); err != nil {
+		if err := r.Schedule(ctx, msg, time.Now().Add(time.Duration(i)*time.Second)); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -1796,11 +1817,13 @@ func TestListTasksError(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		pgn := Pagination{Page: 0, Size: 20}
-		if _, got := r.ListActive(tc.qname, pgn); !tc.match(got) {
+		if _, got := r.ListActive(ctx, tc.qname, pgn); !tc.match(got) {
 			t.Errorf("%s: ListActive returned %v", tc.desc, got)
 		}
-		if _, got := r.ListPending(tc.qname, pgn); !tc.match(got) {
+		if _, got := r.ListPending(ctx, tc.qname, pgn); !tc.match(got) {
 			t.Errorf("%s: ListPending returned %v", tc.desc, got)
 		}
 		if _, got := r.ListScheduled(tc.qname, pgn); !tc.match(got) {
@@ -4291,6 +4314,8 @@ func TestDeleteTaskWithUniqueLock(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client) // clean up db before each test case
 		h.SeedAllScheduledQueues(t, r.client, tc.scheduled)
 
@@ -4306,7 +4331,7 @@ func TestDeleteTaskWithUniqueLock(t *testing.T) {
 			}
 		}
 
-		if r.client.Exists(context.Background(), tc.uniqueKey).Val() != 0 {
+		if r.client.Exists(ctx, tc.uniqueKey).Val() != 0 {
 			t.Errorf("Uniqueness lock %q still exists", tc.uniqueKey)
 		}
 	}
@@ -4591,6 +4616,8 @@ func TestDeleteAllArchivedTasksWithUniqueKey(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client) // clean up db before each test case
 		h.SeedAllArchivedQueues(t, r.client, tc.archived)
 
@@ -4609,7 +4636,7 @@ func TestDeleteAllArchivedTasksWithUniqueKey(t *testing.T) {
 		}
 
 		for _, uniqueKey := range tc.uniqueKeys {
-			if r.client.Exists(context.Background(), uniqueKey).Val() != 0 {
+			if r.client.Exists(ctx, uniqueKey).Val() != 0 {
 				t.Errorf("Uniqueness lock %q still exists", uniqueKey)
 			}
 		}
@@ -4996,6 +5023,8 @@ func TestRemoveQueue(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client)
 		h.SeedAllPendingQueues(t, r.client, tc.pending)
 		h.SeedAllActiveQueues(t, r.client, tc.inProgress)
@@ -5009,7 +5038,7 @@ func TestRemoveQueue(t *testing.T) {
 				tc.qname, tc.force, err)
 			continue
 		}
-		if r.client.SIsMember(context.Background(), base.AllQueues, tc.qname).Val() {
+		if r.client.SIsMember(ctx, base.AllQueues, tc.qname).Val() {
 			t.Errorf("%q is a member of %q", tc.qname, base.AllQueues)
 		}
 
@@ -5022,12 +5051,12 @@ func TestRemoveQueue(t *testing.T) {
 			base.ArchivedKey(tc.qname),
 		}
 		for _, key := range keys {
-			if r.client.Exists(context.Background(), key).Val() != 0 {
+			if r.client.Exists(ctx, key).Val() != 0 {
 				t.Errorf("key %q still exists", key)
 			}
 		}
 
-		if n := len(r.client.Keys(context.Background(), base.TaskKeyPrefix(tc.qname)+"*").Val()); n != 0 {
+		if n := len(r.client.Keys(ctx, base.TaskKeyPrefix(tc.qname)+"*").Val()); n != 0 {
 			t.Errorf("%d keys still exists for tasks", n)
 		}
 	}
@@ -5036,6 +5065,7 @@ func TestRemoveQueue(t *testing.T) {
 func TestRemoveQueueError(t *testing.T) {
 	r := setup(t)
 	defer r.Close()
+
 	m1 := h.NewTaskMessage("task1", nil)
 	m2 := h.NewTaskMessage("task2", nil)
 	m3 := h.NewTaskMessageWithQueue("task3", nil, "custom")
@@ -5432,6 +5462,8 @@ func TestRecordSchedulerEnqueueEventTrimsDataSet(t *testing.T) {
 		key     = base.SchedulerHistoryKey(entryID)
 	)
 
+	ctx := context.Background()
+
 	// Record maximum number of events.
 	for i := 1; i <= maxEvents; i++ {
 		event := base.SchedulerEnqueueEvent{
@@ -5444,7 +5476,7 @@ func TestRecordSchedulerEnqueueEventTrimsDataSet(t *testing.T) {
 	}
 
 	// Make sure the set is full.
-	if n := r.client.ZCard(context.Background(), key).Val(); n != maxEvents {
+	if n := r.client.ZCard(ctx, key).Val(); n != maxEvents {
 		t.Fatalf("unexpected number of events; got %d, want %d", n, maxEvents)
 	}
 
@@ -5456,7 +5488,7 @@ func TestRecordSchedulerEnqueueEventTrimsDataSet(t *testing.T) {
 	if err := r.RecordSchedulerEnqueueEvent(entryID, &event); err != nil {
 		t.Fatalf("RecordSchedulerEnqueueEvent failed: %v", err)
 	}
-	if n := r.client.ZCard(context.Background(), key).Val(); n != maxEvents {
+	if n := r.client.ZCard(ctx, key).Val(); n != maxEvents {
 		t.Fatalf("unexpected number of events; got %d, want %d", n, maxEvents)
 	}
 	events, err := r.ListSchedulerEnqueueEvents(entryID, Pagination{Size: maxEvents})
@@ -5482,6 +5514,8 @@ func TestPause(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client)
 
 		err := r.Pause(tc.qname)
@@ -5489,7 +5523,7 @@ func TestPause(t *testing.T) {
 			t.Errorf("Pause(%q) returned error: %v", tc.qname, err)
 		}
 		key := base.PausedKey(tc.qname)
-		if r.client.Exists(context.Background(), key).Val() == 0 {
+		if r.client.Exists(ctx, key).Val() == 0 {
 			t.Errorf("key %q does not exist", key)
 		}
 	}
@@ -5532,6 +5566,8 @@ func TestUnpause(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client)
 		for _, qname := range tc.paused {
 			if err := r.Pause(qname); err != nil {
@@ -5544,7 +5580,7 @@ func TestUnpause(t *testing.T) {
 			t.Errorf("Unpause(%q) returned error: %v", tc.qname, err)
 		}
 		key := base.PausedKey(tc.qname)
-		if r.client.Exists(context.Background(), key).Val() == 1 {
+		if r.client.Exists(ctx, key).Val() == 1 {
 			t.Errorf("key %q exists", key)
 		}
 	}
