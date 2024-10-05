@@ -1,5 +1,7 @@
 <img src="https://user-images.githubusercontent.com/11155743/114697792-ffbfa580-9d26-11eb-8e5b-33bef69476dc.png" alt="Asynq logo" width="360px" />
 
+#### This is a fork of the execllent [Asynq](https://github.com/hibiken/asynq) library. The original library is no longer maintained. Please use this fork instead.
+
 # Simple, reliable & efficient distributed task queue in Go
 
 [![GoDoc](https://godoc.org/github.com/AsynqLab/asynq?status.svg)](https://godoc.org/github.com/AsynqLab/asynq)
