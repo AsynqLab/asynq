@@ -612,7 +612,7 @@ func (p Pagination) stop() int64 {
 }
 
 // ListPending returns pending tasks that are ready to be processed.
-func (r *RDB) ListPending(qname string, pgn Pagination) ([]*base.TaskInfo, error) {
+func (r *RDB) ListPending(ctx context.Context, qname string, pgn Pagination) ([]*base.TaskInfo, error) {
 	var op errors.Op = "rdb.ListPending"
 	exists, err := r.queueExists(qname)
 	if err != nil {
@@ -621,7 +621,7 @@ func (r *RDB) ListPending(qname string, pgn Pagination) ([]*base.TaskInfo, error
 	if !exists {
 		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: qname})
 	}
-	res, err := r.listMessages(qname, base.TaskStatePending, pgn)
+	res, err := r.listMessages(ctx, qname, base.TaskStatePending, pgn)
 	if err != nil {
 		return nil, errors.E(op, errors.CanonicalCode(err), err)
 	}
@@ -629,7 +629,7 @@ func (r *RDB) ListPending(qname string, pgn Pagination) ([]*base.TaskInfo, error
 }
 
 // ListActive returns all tasks that are currently being processed for the given queue.
-func (r *RDB) ListActive(qname string, pgn Pagination) ([]*base.TaskInfo, error) {
+func (r *RDB) ListActive(ctx context.Context, qname string, pgn Pagination) ([]*base.TaskInfo, error) {
 	var op errors.Op = "rdb.ListActive"
 	exists, err := r.queueExists(qname)
 	if err != nil {
@@ -638,7 +638,7 @@ func (r *RDB) ListActive(qname string, pgn Pagination) ([]*base.TaskInfo, error)
 	if !exists {
 		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: qname})
 	}
-	res, err := r.listMessages(qname, base.TaskStateActive, pgn)
+	res, err := r.listMessages(ctx, qname, base.TaskStateActive, pgn)
 	if err != nil {
 		return nil, errors.E(op, errors.CanonicalCode(err), err)
 	}
@@ -662,7 +662,9 @@ return data
 `)
 
 // listMessages returns a list of TaskInfo in Redis list with the given key.
-func (r *RDB) listMessages(qname string, state base.TaskState, pgn Pagination) ([]*base.TaskInfo, error) {
+func (r *RDB) listMessages(ctx context.Context, qname string, state base.TaskState, pgn Pagination) (
+	[]*base.TaskInfo, error,
+) {
 	var key string
 	switch state {
 	case base.TaskStateActive:
@@ -676,8 +678,7 @@ func (r *RDB) listMessages(qname string, state base.TaskState, pgn Pagination) (
 	// correct range and reverse the list to get the tasks with pagination.
 	stop := -pgn.start() - 1
 	start := -pgn.stop() - 1
-	res, err := listMessagesCmd.Run(context.Background(), r.client,
-		[]string{key}, start, stop, base.TaskKeyPrefix(qname)).Result()
+	res, err := listMessagesCmd.Run(ctx, r.client, []string{key}, start, stop, base.TaskKeyPrefix(qname)).Result()
 	if err != nil {
 		return nil, errors.E(errors.Unknown, err)
 	}
