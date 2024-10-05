@@ -671,6 +671,7 @@ func TestInspectorGetTaskInfoError(t *testing.T) {
 func TestInspectorListPendingTasks(t *testing.T) {
 	r := setup(t)
 	defer r.Close()
+
 	m1 := h.NewTaskMessage("task1", nil)
 	m2 := h.NewTaskMessage("task2", nil)
 	m3 := h.NewTaskMessageWithQueue("task3", nil, "critical")
@@ -718,12 +719,14 @@ func TestInspectorListPendingTasks(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r)
 		for q, msgs := range tc.pending {
 			h.SeedPendingQueue(t, r, msgs, q)
 		}
 
-		got, err := inspector.ListPendingTasks(tc.qname)
+		got, err := inspector.ListPendingTasks(ctx, tc.qname)
 		if err != nil {
 			t.Errorf("%s; ListPendingTasks(%q) returned error: %v",
 				tc.desc, tc.qname, err)
@@ -811,11 +814,13 @@ func TestInspectorListActiveTasks(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r)
 		h.SeedAllActiveQueues(t, r, tc.active)
 		h.SeedAllLease(t, r, tc.lease)
 
-		got, err := inspector.ListActiveTasks(tc.qname)
+		got, err := inspector.ListActiveTasks(ctx, tc.qname)
 		if err != nil {
 			t.Errorf("%s; ListActiveTasks(%q) returned error: %v", tc.qname, tc.desc, err)
 			continue
@@ -1263,7 +1268,9 @@ func TestInspectorListPagination(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got, err := inspector.ListPendingTasks("default", Page(tc.page), PageSize(tc.pageSize))
+		ctx := context.Background()
+
+		got, err := inspector.ListPendingTasks(ctx, "default", Page(tc.page), PageSize(tc.pageSize))
 		if err != nil {
 			t.Errorf("ListPendingTask('default') returned error: %v", err)
 			continue
@@ -1296,12 +1303,14 @@ func TestInspectorListTasksQueueNotFoundError(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r)
 
-		if _, err := inspector.ListActiveTasks(tc.qname); !errors.Is(err, tc.wantErr) {
+		if _, err := inspector.ListActiveTasks(ctx, tc.qname); !errors.Is(err, tc.wantErr) {
 			t.Errorf("ListActiveTasks(%q) returned error %v, want %v", tc.qname, err, tc.wantErr)
 		}
-		if _, err := inspector.ListPendingTasks(tc.qname); !errors.Is(err, tc.wantErr) {
+		if _, err := inspector.ListPendingTasks(ctx, tc.qname); !errors.Is(err, tc.wantErr) {
 			t.Errorf("ListPendingTasks(%q) returned error %v, want %v", tc.qname, err, tc.wantErr)
 		}
 		if _, err := inspector.ListScheduledTasks(tc.qname); !errors.Is(err, tc.wantErr) {
