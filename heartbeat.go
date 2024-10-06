@@ -1,6 +1,7 @@
 package asynq
 
 import (
+	"context"
 	"os"
 	"sync"
 	"time"
@@ -116,7 +117,7 @@ func (h *heartbeater) start(wg *sync.WaitGroup) {
 		for {
 			select {
 			case <-h.done:
-				h.broker.ClearServerState(h.host, h.pid, h.serverID)
+				_ = h.broker.ClearServerState(h.host, h.pid, h.serverID)
 				h.logger.Debug("Heartbeater done")
 				timer.Stop()
 				return
@@ -137,6 +138,8 @@ func (h *heartbeater) start(wg *sync.WaitGroup) {
 
 // beat extends lease for workers and writes server/worker info to redis.
 func (h *heartbeater) beat() {
+	ctx := context.Background()
+
 	h.state.mu.Lock()
 	srvStatus := h.state.value.String()
 	h.state.mu.Unlock()
@@ -182,7 +185,7 @@ func (h *heartbeater) beat() {
 	}
 
 	for qname, ids := range idsByQueue {
-		expirationTime, err := h.broker.ExtendLease(qname, ids...)
+		expirationTime, err := h.broker.ExtendLease(ctx, qname, ids...)
 		if err != nil {
 			h.logger.Errorf("Failed to extend lease for tasks %v: %v", ids, err)
 			continue

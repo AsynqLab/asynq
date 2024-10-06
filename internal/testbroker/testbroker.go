@@ -141,31 +141,31 @@ func (tb *TestBroker) ForwardIfReady(qnames ...string) error {
 	return tb.real.ForwardIfReady(qnames...)
 }
 
-func (tb *TestBroker) DeleteExpiredCompletedTasks(qname string, batchSize int) error {
+func (tb *TestBroker) DeleteExpiredCompletedTasks(ctx context.Context, qname string, batchSize int) error {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return errRedisDown
 	}
-	return tb.real.DeleteExpiredCompletedTasks(qname, batchSize)
+	return tb.real.DeleteExpiredCompletedTasks(ctx, qname, batchSize)
 }
 
-func (tb *TestBroker) ListLeaseExpired(cutoff time.Time, qnames ...string) ([]*base.TaskMessage, error) {
+func (tb *TestBroker) ListLeaseExpired(ctx context.Context, cutoff time.Time, qnames ...string) ([]*base.TaskMessage, error) {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return nil, errRedisDown
 	}
-	return tb.real.ListLeaseExpired(cutoff, qnames...)
+	return tb.real.ListLeaseExpired(ctx, cutoff, qnames...)
 }
 
-func (tb *TestBroker) ExtendLease(qname string, ids ...string) (time.Time, error) {
+func (tb *TestBroker) ExtendLease(ctx context.Context, qname string, ids ...string) (time.Time, error) {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return time.Time{}, errRedisDown
 	}
-	return tb.real.ExtendLease(qname, ids...)
+	return tb.real.ExtendLease(ctx, qname, ids...)
 }
 
 func (tb *TestBroker) WriteServerState(info *base.ServerInfo, workers []*base.WorkerInfo, ttl time.Duration) error {
@@ -204,13 +204,13 @@ func (tb *TestBroker) PublishCancellation(id string) error {
 	return tb.real.PublishCancellation(id)
 }
 
-func (tb *TestBroker) WriteResult(qname, id string, data []byte) (int, error) {
+func (tb *TestBroker) WriteResult(ctx context.Context, qname, id string, data []byte) (int, error) {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return 0, errRedisDown
 	}
-	return tb.real.WriteResult(qname, id, data)
+	return tb.real.WriteResult(ctx, qname, id, data)
 }
 
 func (tb *TestBroker) Ping() error {
@@ -285,11 +285,11 @@ func (tb *TestBroker) DeleteAggregationSet(ctx context.Context, qname, gname, ag
 	return tb.real.DeleteAggregationSet(ctx, qname, gname, aggregationSetID)
 }
 
-func (tb *TestBroker) ReclaimStaleAggregationSets(qname string) error {
+func (tb *TestBroker) ReclaimStaleAggregationSets(ctx context.Context, qname string) error {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return errRedisDown
 	}
-	return tb.real.ReclaimStaleAggregationSets(qname)
+	return tb.real.ReclaimStaleAggregationSets(ctx, qname)
 }

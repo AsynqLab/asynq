@@ -693,18 +693,18 @@ type Broker interface {
 	AggregationCheck(qname, gname string, t time.Time, gracePeriod, maxDelay time.Duration, maxSize int) (aggregationSetID string, err error)
 	ReadAggregationSet(qname, gname, aggregationSetID string) ([]*TaskMessage, time.Time, error)
 	DeleteAggregationSet(ctx context.Context, qname, gname, aggregationSetID string) error
-	ReclaimStaleAggregationSets(qname string) error
+	ReclaimStaleAggregationSets(ctx context.Context, qname string) error
 
 	/*
 		Task retention related method
 	*/
-	DeleteExpiredCompletedTasks(qname string, batchSize int) error
+	DeleteExpiredCompletedTasks(ctx context.Context, qname string, batchSize int) error
 
 	/*
 		Lease related methods
 	*/
-	ListLeaseExpired(cutoff time.Time, qnames ...string) ([]*TaskMessage, error)
-	ExtendLease(qname string, ids ...string) (time.Time, error)
+	ListLeaseExpired(ctx context.Context, cutoff time.Time, qnames ...string) ([]*TaskMessage, error)
+	ExtendLease(ctx context.Context, qname string, ids ...string) (time.Time, error)
 
 	/*
 		State snapshot related methods
@@ -718,5 +718,5 @@ type Broker interface {
 	CancellationPubSub() (*redis.PubSub, error) // TODO: Need to decouple from redis to support other brokers
 	PublishCancellation(id string) error
 
-	WriteResult(qname, id string, data []byte) (n int, err error)
+	WriteResult(ctx context.Context, qname, id string, data []byte) (n int, err error)
 }

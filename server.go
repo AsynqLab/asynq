@@ -681,8 +681,8 @@ func (srv *Server) Start(handler Handler) error {
 	return nil
 }
 
-// Checks server state and returns an error if pre-condition is not met.
-// Otherwise it sets the server state to active.
+// start checks server state and returns an error if pre-condition is not met.
+// Otherwise, it sets the server state to active.
 func (srv *Server) start() error {
 	srv.state.mu.Lock()
 	defer srv.state.mu.Unlock()

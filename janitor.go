@@ -1,6 +1,7 @@
 package asynq
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -73,8 +74,9 @@ func (j *janitor) start(wg *sync.WaitGroup) {
 }
 
 func (j *janitor) exec() {
+	ctx := context.Background()
 	for _, qname := range j.queues {
-		if err := j.broker.DeleteExpiredCompletedTasks(qname, j.batchSize); err != nil {
+		if err := j.broker.DeleteExpiredCompletedTasks(ctx, qname, j.batchSize); err != nil {
 			j.logger.Errorf("Failed to delete expired completed tasks from queue %q: %v",
 				qname, err)
 		}
