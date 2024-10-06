@@ -2535,10 +2535,12 @@ func TestDeleteExpiredCompletedTasks(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client)
 		h.SeedAllCompletedQueues(t, r.client, tc.completed)
 
-		if err := r.DeleteExpiredCompletedTasks(tc.qname, 100); err != nil {
+		if err := r.DeleteExpiredCompletedTasks(ctx, tc.qname, 100); err != nil {
 			t.Errorf("DeleteExpiredCompletedTasks(%q, 100) failed: %v", tc.qname, err)
 			continue
 		}
@@ -2620,10 +2622,12 @@ func TestListLeaseExpired(t *testing.T) {
 	r := setup(t)
 	defer r.Close()
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client)
 		h.SeedAllLease(t, r.client, tc.lease)
 
-		got, err := r.ListLeaseExpired(tc.cutoff, tc.qnames...)
+		got, err := r.ListLeaseExpired(ctx, tc.cutoff, tc.qnames...)
 		if err != nil {
 			t.Errorf("%s; ListLeaseExpired(%v) returned error: %v", tc.desc, tc.cutoff, err)
 			continue
@@ -2724,10 +2728,12 @@ func TestExtendLease(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client)
 		h.SeedAllLease(t, r.client, tc.lease)
 
-		gotExpirationTime, err := r.ExtendLease(tc.qname, tc.ids...)
+		gotExpirationTime, err := r.ExtendLease(ctx, tc.qname, tc.ids...)
 		if err != nil {
 			t.Fatalf("%s: ExtendLease(%q, %v) returned error: %v", tc.desc, tc.qname, tc.ids, err)
 		}
@@ -3078,9 +3084,11 @@ func TestWriteResult(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client)
 
-		n, err := r.WriteResult(tc.qname, tc.taskID, tc.data)
+		n, err := r.WriteResult(ctx, tc.qname, tc.taskID, tc.data)
 		if err != nil {
 			t.Errorf("WriteResult failed: %v", err)
 			continue
@@ -3737,12 +3745,14 @@ func TestReclaimStaleAggregationSets(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client)
 		h.SeedRedisZSets(t, r.client, tc.groups)
 		h.SeedRedisZSets(t, r.client, tc.aggregationSets)
 		h.SeedRedisZSets(t, r.client, tc.allAggregationSets)
 
-		if err := r.ReclaimStaleAggregationSets(tc.qname); err != nil {
+		if err := r.ReclaimStaleAggregationSets(ctx, tc.qname); err != nil {
 			t.Errorf("ReclaimStaleAggregationSets returned error: %v", err)
 			continue
 		}
