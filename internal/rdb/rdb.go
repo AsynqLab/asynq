@@ -1215,9 +1215,9 @@ return redis.status_reply("OK")
 
 // ReclaimStaleAggregationSets checks for any stale aggregation sets in the given queue, and
 // reclaim tasks in the stale aggregation set by putting them back in the group.
-func (r *RDB) ReclaimStaleAggregationSets(qname string) error {
+func (r *RDB) ReclaimStaleAggregationSets(ctx context.Context, qname string) error {
 	var op errors.Op = "RDB.ReclaimStaleAggregationSets"
-	return r.runScript(context.Background(), op, reclaimStateAggregationSetsCmd,
+	return r.runScript(ctx, op, reclaimStateAggregationSetsCmd,
 		[]string{base.AllAggregationSets(qname)}, r.clock.Now().Unix())
 }
 
@@ -1237,9 +1237,9 @@ return table.getn(ids)`)
 
 // DeleteExpiredCompletedTasks checks for any expired tasks in the given queue's completed set,
 // and delete all expired tasks.
-func (r *RDB) DeleteExpiredCompletedTasks(qname string, batchSize int) error {
+func (r *RDB) DeleteExpiredCompletedTasks(ctx context.Context, qname string, batchSize int) error {
 	for {
-		n, err := r.deleteExpiredCompletedTasks(qname, batchSize)
+		n, err := r.deleteExpiredCompletedTasks(ctx, qname, batchSize)
 		if err != nil {
 			return err
 		}
@@ -1251,7 +1251,7 @@ func (r *RDB) DeleteExpiredCompletedTasks(qname string, batchSize int) error {
 
 // deleteExpiredCompletedTasks runs the lua script to delete expired deleted task with the specified
 // batch size. It reports the number of tasks deleted.
-func (r *RDB) deleteExpiredCompletedTasks(qname string, batchSize int) (int64, error) {
+func (r *RDB) deleteExpiredCompletedTasks(ctx context.Context, qname string, batchSize int) (int64, error) {
 	var op errors.Op = "rdb.DeleteExpiredCompletedTasks"
 	keys := []string{base.CompletedKey(qname)}
 	argv := []interface{}{
@@ -1259,7 +1259,7 @@ func (r *RDB) deleteExpiredCompletedTasks(qname string, batchSize int) (int64, e
 		base.TaskKeyPrefix(qname),
 		batchSize,
 	}
-	res, err := deleteExpiredCompletedTasksCmd.Run(context.Background(), r.client, keys, argv...).Result()
+	res, err := deleteExpiredCompletedTasksCmd.Run(ctx, r.client, keys, argv...).Result()
 	if err != nil {
 		return 0, errors.E(op, errors.Internal, fmt.Sprintf("redis eval error: %v", err))
 	}
@@ -1287,11 +1287,11 @@ return res
 `)
 
 // ListLeaseExpired returns a list of task messages with an expired lease from the given queues.
-func (r *RDB) ListLeaseExpired(cutoff time.Time, qnames ...string) ([]*base.TaskMessage, error) {
+func (r *RDB) ListLeaseExpired(ctx context.Context, cutoff time.Time, qnames ...string) ([]*base.TaskMessage, error) {
 	var op errors.Op = "rdb.ListLeaseExpired"
 	var msgs []*base.TaskMessage
 	for _, qname := range qnames {
-		res, err := listLeaseExpiredCmd.Run(context.Background(), r.client,
+		res, err := listLeaseExpiredCmd.Run(ctx, r.client,
 			[]string{base.LeaseKey(qname)},
 			cutoff.Unix(), base.TaskKeyPrefix(qname)).Result()
 		if err != nil {
@@ -1314,15 +1314,15 @@ func (r *RDB) ListLeaseExpired(cutoff time.Time, qnames ...string) ([]*base.Task
 
 // ExtendLease extends the lease for the given tasks by LeaseDuration (30s).
 // It returns a new expiration time if the operation was successful.
-func (r *RDB) ExtendLease(qname string, ids ...string) (expirationTime time.Time, err error) {
+func (r *RDB) ExtendLease(ctx context.Context, qname string, ids ...string) (expirationTime time.Time, err error) {
 	expireAt := r.clock.Now().Add(LeaseDuration)
 	var zs []redis.Z
 	for _, id := range ids {
 		zs = append(zs, redis.Z{Member: id, Score: float64(expireAt.Unix())})
 	}
 	// Use XX option to only update elements that already exist; Don't add new elements
-	// TODO: Consider adding GT option to ensure we only "extend" the lease. Ceveat is that GT is supported from redis v6.2.0 or above.
-	err = r.client.ZAddXX(context.Background(), base.LeaseKey(qname), zs...).Err()
+	// TODO: Consider adding GT option to ensure we only "extend" the lease. Caveat is that GT is supported from redis v6.2.0 or above.
+	err = r.client.ZAddXX(ctx, base.LeaseKey(qname), zs...).Err()
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -1441,7 +1441,7 @@ func (r *RDB) ClearSchedulerEntries(scheduelrID string) error {
 	return nil
 }
 
-// CancelationPubSub returns a pubsub for cancelation messages.
+// CancellationPubSub returns a pubsub for cancellation messages.
 func (r *RDB) CancellationPubSub() (*redis.PubSub, error) {
 	var op errors.Op = "rdb.CancellationPubSub"
 	ctx := context.Background()
@@ -1453,7 +1453,7 @@ func (r *RDB) CancellationPubSub() (*redis.PubSub, error) {
 	return pubsub, nil
 }
 
-// PublishCancelation publish cancelation message to all subscribers.
+// PublishCancellation publish cancellation message to all subscribers.
 // The message is the ID for the task to be canceled.
 func (r *RDB) PublishCancellation(id string) error {
 	var op errors.Op = "rdb.PublishCancellation"
@@ -1507,9 +1507,8 @@ func (r *RDB) ClearSchedulerHistory(entryID string) error {
 }
 
 // WriteResult writes the given result data for the specified task.
-func (r *RDB) WriteResult(qname, taskID string, data []byte) (int, error) {
+func (r *RDB) WriteResult(ctx context.Context, qname, taskID string, data []byte) (int, error) {
 	var op errors.Op = "rdb.WriteResult"
-	ctx := context.Background()
 	taskKey := base.TaskKey(qname, taskID)
 	if err := r.client.HSet(ctx, taskKey, "result", data).Err(); err != nil {
 		return 0, errors.E(op, errors.Unknown, &errors.RedisCommandError{Command: "hset", Err: err})

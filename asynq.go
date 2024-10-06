@@ -535,7 +535,8 @@ func (w *ResultWriter) Write(data []byte) (n int, err error) {
 		return 0, fmt.Errorf("failed to result task result: %v", w.ctx.Err())
 	default:
 	}
-	return w.broker.WriteResult(w.qname, w.id, data)
+	ctx := context.Background()
+	return w.broker.WriteResult(ctx, w.qname, w.id, data)
 }
 
 // TaskID returns the ID of the task the ResultWriter is associated with.

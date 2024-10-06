@@ -1,10 +1,7 @@
-// Copyright 2021 Kentaro Hibino. All rights reserved.
-// Use of this source code is governed by a MIT license
-// that can be found in the LICENSE file.
-
 package asynq
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -19,7 +16,7 @@ type janitor struct {
 	logger *log.Logger
 	broker base.Broker
 
-	// channel to communicate back to the long running "janitor" goroutine.
+	// channel to communicate back to the long-running "janitor" goroutine.
 	done chan struct{}
 
 	// list of queue names to check.
@@ -77,8 +74,9 @@ func (j *janitor) start(wg *sync.WaitGroup) {
 }
 
 func (j *janitor) exec() {
+	ctx := context.Background()
 	for _, qname := range j.queues {
-		if err := j.broker.DeleteExpiredCompletedTasks(qname, j.batchSize); err != nil {
+		if err := j.broker.DeleteExpiredCompletedTasks(ctx, qname, j.batchSize); err != nil {
 			j.logger.Errorf("Failed to delete expired completed tasks from queue %q: %v",
 				qname, err)
 		}

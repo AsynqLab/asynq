@@ -83,9 +83,10 @@ func (r *recoverer) recover() {
 }
 
 func (r *recoverer) recoverLeaseExpiredTasks() {
+	ctx := context.Background()
 	// Get all tasks which have expired 30 seconds ago or earlier to accommodate certain amount of clock skew.
 	cutoff := time.Now().Add(-30 * time.Second)
-	msgs, err := r.broker.ListLeaseExpired(cutoff, r.queues...)
+	msgs, err := r.broker.ListLeaseExpired(ctx, cutoff, r.queues...)
 	if err != nil {
 		r.logger.Warnf("recoverer: could not list lease expired tasks: %v", err)
 		return
@@ -100,8 +101,9 @@ func (r *recoverer) recoverLeaseExpiredTasks() {
 }
 
 func (r *recoverer) recoverStaleAggregationSets() {
+	ctx := context.Background()
 	for _, qname := range r.queues {
-		if err := r.broker.ReclaimStaleAggregationSets(qname); err != nil {
+		if err := r.broker.ReclaimStaleAggregationSets(ctx, qname); err != nil {
 			r.logger.Warnf("recoverer: could not reclaim stale aggregation sets in queue %q: %v", qname, err)
 		}
 	}
