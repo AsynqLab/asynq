@@ -1,7 +1,3 @@
-// Copyright 2021 Kentaro Hibino. All rights reserved.
-// Use of this source code is governed by a MIT license
-// that can be found in the LICENSE file.
-
 package asynq
 
 import (
@@ -19,7 +15,7 @@ type janitor struct {
 	logger *log.Logger
 	broker base.Broker
 
-	// channel to communicate back to the long running "janitor" goroutine.
+	// channel to communicate back to the long-running "janitor" goroutine.
 	done chan struct{}
 
 	// list of queue names to check.

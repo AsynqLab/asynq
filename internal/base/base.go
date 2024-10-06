@@ -18,9 +18,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// Version of asynq library and CLI.
-const Version = "0.24.1"
-
 // DefaultQueueName is the queue name used if none are specified by user.
 const DefaultQueueName = "default"
 
@@ -634,7 +631,7 @@ func (l *Lease) Reset(expirationTime time.Time) bool {
 	return true
 }
 
-// Sends a notification to lessee about expired lease
+// NotifyExpiration sends a notification to lessee about expired lease
 // Returns true if notification was sent, returns false if the lease is still valid and notification was not sent.
 func (l *Lease) NotifyExpiration() bool {
 	if l.IsValid() {
@@ -687,7 +684,9 @@ type Broker interface {
 	Archive(ctx context.Context, msg *TaskMessage, errMsg string) error
 	ForwardIfReady(qnames ...string) error
 
-	// Group aggregation related methods
+	/*
+		Group aggregation related methods
+	*/
 	AddToGroup(ctx context.Context, msg *TaskMessage, gname string) error
 	AddToGroupUnique(ctx context.Context, msg *TaskMessage, groupKey string, ttl time.Duration) error
 	ListGroups(qname string) ([]string, error)
@@ -696,20 +695,28 @@ type Broker interface {
 	DeleteAggregationSet(ctx context.Context, qname, gname, aggregationSetID string) error
 	ReclaimStaleAggregationSets(qname string) error
 
-	// Task retention related method
+	/*
+		Task retention related method
+	*/
 	DeleteExpiredCompletedTasks(qname string, batchSize int) error
 
-	// Lease related methods
+	/*
+		Lease related methods
+	*/
 	ListLeaseExpired(cutoff time.Time, qnames ...string) ([]*TaskMessage, error)
 	ExtendLease(qname string, ids ...string) (time.Time, error)
 
-	// State snapshot related methods
+	/*
+		State snapshot related methods
+	*/
 	WriteServerState(info *ServerInfo, workers []*WorkerInfo, ttl time.Duration) error
 	ClearServerState(host string, pid int, serverID string) error
 
-	// Cancelation related methods
-	CancelationPubSub() (*redis.PubSub, error) // TODO: Need to decouple from redis to support other brokers
-	PublishCancelation(id string) error
+	/*
+		Cancellation related methods
+	*/
+	CancellationPubSub() (*redis.PubSub, error) // TODO: Need to decouple from redis to support other brokers
+	PublishCancellation(id string) error
 
 	WriteResult(qname, id string, data []byte) (n int, err error)
 }

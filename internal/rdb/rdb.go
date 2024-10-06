@@ -1442,8 +1442,8 @@ func (r *RDB) ClearSchedulerEntries(scheduelrID string) error {
 }
 
 // CancelationPubSub returns a pubsub for cancelation messages.
-func (r *RDB) CancelationPubSub() (*redis.PubSub, error) {
-	var op errors.Op = "rdb.CancelationPubSub"
+func (r *RDB) CancellationPubSub() (*redis.PubSub, error) {
+	var op errors.Op = "rdb.CancellationPubSub"
 	ctx := context.Background()
 	pubsub := r.client.Subscribe(ctx, base.CancelChannel)
 	_, err := pubsub.Receive(ctx)
@@ -1455,8 +1455,8 @@ func (r *RDB) CancelationPubSub() (*redis.PubSub, error) {
 
 // PublishCancelation publish cancelation message to all subscribers.
 // The message is the ID for the task to be canceled.
-func (r *RDB) PublishCancelation(id string) error {
-	var op errors.Op = "rdb.PublishCancelation"
+func (r *RDB) PublishCancellation(id string) error {
+	var op errors.Op = "rdb.PublishCancellation"
 	ctx := context.Background()
 	if err := r.client.Publish(ctx, base.CancelChannel, id).Err(); err != nil {
 		return errors.E(op, errors.Unknown, fmt.Sprintf("redis pubsub publish error: %v", err))

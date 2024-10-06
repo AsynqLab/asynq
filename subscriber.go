@@ -55,7 +55,7 @@ func (s *subscriber) start(wg *sync.WaitGroup) {
 		)
 		// Try until successfully connect to Redis.
 		for {
-			pubsub, err = s.broker.CancelationPubSub()
+			pubsub, err = s.broker.CancellationPubSub()
 			if err != nil {
 				s.logger.Errorf("cannot subscribe to cancelation channel: %v", err)
 				select {

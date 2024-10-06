@@ -3023,9 +3023,9 @@ func TestCancelationPubSub(t *testing.T) {
 	r := setup(t)
 	defer r.Close()
 
-	pubsub, err := r.CancelationPubSub()
+	pubsub, err := r.CancellationPubSub()
 	if err != nil {
-		t.Fatalf("(*RDB).CancelationPubSub() returned an error: %v", err)
+		t.Fatalf("(*RDB).CancellationPubSub() returned an error: %v", err)
 	}
 
 	cancelCh := pubsub.Channel()
@@ -3046,7 +3046,7 @@ func TestCancelationPubSub(t *testing.T) {
 	publish := []string{"one", "two", "three"}
 
 	for _, msg := range publish {
-		r.PublishCancelation(msg)
+		r.PublishCancellation(msg)
 	}
 
 	// allow for message to reach subscribers.

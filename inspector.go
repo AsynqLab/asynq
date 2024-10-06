@@ -718,7 +718,7 @@ func (i *Inspector) ArchiveTask(queue, id string) error {
 // guarantee that the task with the given id will be canceled. The return
 // value only indicates whether the cancelation signal has been sent.
 func (i *Inspector) CancelProcessing(id string) error {
-	return i.rdb.PublishCancelation(id)
+	return i.rdb.PublishCancellation(id)
 }
 
 // PauseQueue pauses task processing on the specified queue.
