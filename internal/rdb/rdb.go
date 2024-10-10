@@ -994,7 +994,7 @@ func (r *RDB) ListGroups(qname string) ([]string, error) {
 // 1) group has reached or exceeded its max size
 // 2) group's oldest task has reached or exceeded its max delay
 // 3) group's latest task has reached or exceeded its grace period
-// if aggreation criteria is met, the command moves those tasks from the group
+// if aggregation criteria is met, the command moves those tasks from the group
 // and put them in an aggregation set. Additionally, if the creation of aggregation set
 // empties the group, it will clear the group name from the all groups set.
 //
@@ -1073,7 +1073,7 @@ return 0
 `)
 
 // Task aggregation should finish within this timeout.
-// Otherwise an aggregation set should be reclaimed by the recoverer.
+// Otherwise, an aggregation set should be reclaimed by the recoverer.
 const aggregationTimeout = 2 * time.Minute
 
 // AggregationCheck checks the group identified by the given queue and group name to see if the tasks in the

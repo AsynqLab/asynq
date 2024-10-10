@@ -671,6 +671,7 @@ func TestInspectorGetTaskInfoError(t *testing.T) {
 func TestInspectorListPendingTasks(t *testing.T) {
 	r := setup(t)
 	defer r.Close()
+
 	m1 := h.NewTaskMessage("task1", nil)
 	m2 := h.NewTaskMessage("task2", nil)
 	m3 := h.NewTaskMessageWithQueue("task3", nil, "critical")
@@ -718,12 +719,14 @@ func TestInspectorListPendingTasks(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r)
 		for q, msgs := range tc.pending {
 			h.SeedPendingQueue(t, r, msgs, q)
 		}
 
-		got, err := inspector.ListPendingTasks(tc.qname)
+		got, err := inspector.ListPendingTasks(ctx, tc.qname)
 		if err != nil {
 			t.Errorf("%s; ListPendingTasks(%q) returned error: %v",
 				tc.desc, tc.qname, err)
@@ -811,11 +814,13 @@ func TestInspectorListActiveTasks(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r)
 		h.SeedAllActiveQueues(t, r, tc.active)
 		h.SeedAllLease(t, r, tc.lease)
 
-		got, err := inspector.ListActiveTasks(tc.qname)
+		got, err := inspector.ListActiveTasks(ctx, tc.qname)
 		if err != nil {
 			t.Errorf("%s; ListActiveTasks(%q) returned error: %v", tc.qname, tc.desc, err)
 			continue
@@ -882,10 +887,12 @@ func TestInspectorListScheduledTasks(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r)
 		h.SeedAllScheduledQueues(t, r, tc.scheduled)
 
-		got, err := inspector.ListScheduledTasks(tc.qname)
+		got, err := inspector.ListScheduledTasks(ctx, tc.qname)
 		if err != nil {
 			t.Errorf("%s; ListScheduledTasks(%q) returned error: %v", tc.desc, tc.qname, err)
 			continue
@@ -953,10 +960,12 @@ func TestInspectorListRetryTasks(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r)
 		h.SeedAllRetryQueues(t, r, tc.retry)
 
-		got, err := inspector.ListRetryTasks(tc.qname)
+		got, err := inspector.ListRetryTasks(ctx, tc.qname)
 		if err != nil {
 			t.Errorf("%s; ListRetryTasks(%q) returned error: %v", tc.desc, tc.qname, err)
 			continue
@@ -1023,10 +1032,12 @@ func TestInspectorListArchivedTasks(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r)
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 
-		got, err := inspector.ListArchivedTasks(tc.qname)
+		got, err := inspector.ListArchivedTasks(ctx, tc.qname)
 		if err != nil {
 			t.Errorf("%s; ListArchivedTasks(%q) returned error: %v", tc.desc, tc.qname, err)
 			continue
@@ -1100,10 +1111,12 @@ func TestInspectorListCompletedTasks(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r)
 		h.SeedAllCompletedQueues(t, r, tc.completed)
 
-		got, err := inspector.ListCompletedTasks(tc.qname)
+		got, err := inspector.ListCompletedTasks(ctx, tc.qname)
 		if err != nil {
 			t.Errorf("%s; ListCompletedTasks(%q) returned error: %v", tc.desc, tc.qname, err)
 			continue
@@ -1188,6 +1201,8 @@ func TestInspectorListAggregatingTasks(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r)
 		h.SeedTasks(t, r, fxt.tasks)
 		h.SeedRedisSet(t, r, base.AllQueues, fxt.allQueues)
@@ -1195,7 +1210,7 @@ func TestInspectorListAggregatingTasks(t *testing.T) {
 		h.SeedRedisZSets(t, r, fxt.groups)
 
 		t.Run(tc.desc, func(t *testing.T) {
-			got, err := inspector.ListAggregatingTasks(tc.qname, tc.gname)
+			got, err := inspector.ListAggregatingTasks(ctx, tc.qname, tc.gname)
 			if err != nil {
 				t.Fatalf("ListAggregatingTasks returned error: %v", err)
 			}
@@ -1263,7 +1278,9 @@ func TestInspectorListPagination(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got, err := inspector.ListPendingTasks("default", Page(tc.page), PageSize(tc.pageSize))
+		ctx := context.Background()
+
+		got, err := inspector.ListPendingTasks(ctx, "default", Page(tc.page), PageSize(tc.pageSize))
 		if err != nil {
 			t.Errorf("ListPendingTask('default') returned error: %v", err)
 			continue
@@ -1296,27 +1313,29 @@ func TestInspectorListTasksQueueNotFoundError(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r)
 
-		if _, err := inspector.ListActiveTasks(tc.qname); !errors.Is(err, tc.wantErr) {
+		if _, err := inspector.ListActiveTasks(ctx, tc.qname); !errors.Is(err, tc.wantErr) {
 			t.Errorf("ListActiveTasks(%q) returned error %v, want %v", tc.qname, err, tc.wantErr)
 		}
-		if _, err := inspector.ListPendingTasks(tc.qname); !errors.Is(err, tc.wantErr) {
+		if _, err := inspector.ListPendingTasks(ctx, tc.qname); !errors.Is(err, tc.wantErr) {
 			t.Errorf("ListPendingTasks(%q) returned error %v, want %v", tc.qname, err, tc.wantErr)
 		}
-		if _, err := inspector.ListScheduledTasks(tc.qname); !errors.Is(err, tc.wantErr) {
+		if _, err := inspector.ListScheduledTasks(ctx, tc.qname); !errors.Is(err, tc.wantErr) {
 			t.Errorf("ListScheduledTasks(%q) returned error %v, want %v", tc.qname, err, tc.wantErr)
 		}
-		if _, err := inspector.ListRetryTasks(tc.qname); !errors.Is(err, tc.wantErr) {
+		if _, err := inspector.ListRetryTasks(ctx, tc.qname); !errors.Is(err, tc.wantErr) {
 			t.Errorf("ListRetryTasks(%q) returned error %v, want %v", tc.qname, err, tc.wantErr)
 		}
-		if _, err := inspector.ListArchivedTasks(tc.qname); !errors.Is(err, tc.wantErr) {
+		if _, err := inspector.ListArchivedTasks(ctx, tc.qname); !errors.Is(err, tc.wantErr) {
 			t.Errorf("ListArchivedTasks(%q) returned error %v, want %v", tc.qname, err, tc.wantErr)
 		}
-		if _, err := inspector.ListCompletedTasks(tc.qname); !errors.Is(err, tc.wantErr) {
+		if _, err := inspector.ListCompletedTasks(ctx, tc.qname); !errors.Is(err, tc.wantErr) {
 			t.Errorf("ListCompletedTasks(%q) returned error %v, want %v", tc.qname, err, tc.wantErr)
 		}
-		if _, err := inspector.ListAggregatingTasks(tc.qname, "mygroup"); !errors.Is(err, tc.wantErr) {
+		if _, err := inspector.ListAggregatingTasks(ctx, tc.qname, "mygroup"); !errors.Is(err, tc.wantErr) {
 			t.Errorf("ListAggregatingTasks(%q, \"mygroup\") returned error %v, want %v", tc.qname, err, tc.wantErr)
 		}
 	}
