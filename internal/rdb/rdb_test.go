@@ -398,10 +398,12 @@ func TestDequeue(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client) // clean up db before each test case
 		h.SeedAllPendingQueues(t, r.client, tc.pending)
 
-		gotMsg, gotExpirationTime, err := r.Dequeue(tc.queueNames...)
+		gotMsg, gotExpirationTime, err := r.Dequeue(ctx, tc.queueNames...)
 		if err != nil {
 			t.Errorf("(*RDB).Dequeue(%v) returned error %v", tc.queueNames, err)
 			continue
@@ -492,10 +494,12 @@ func TestDequeueError(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client) // clean up db before each test case
 		h.SeedAllPendingQueues(t, r.client, tc.pending)
 
-		gotMsg, _, gotErr := r.Dequeue(tc.queueNames...)
+		gotMsg, _, gotErr := r.Dequeue(ctx, tc.queueNames...)
 		if !errors.Is(gotErr, tc.wantErr) {
 			t.Errorf("(*RDB).Dequeue(%v) returned error %v; want %v",
 				tc.queueNames, gotErr, tc.wantErr)
@@ -610,6 +614,8 @@ func TestDequeueIgnoresPausedQueues(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client) // clean up db before each test case
 		for _, queueName := range tc.paused {
 			if err := r.Pause(queueName); err != nil {
@@ -618,7 +624,7 @@ func TestDequeueIgnoresPausedQueues(t *testing.T) {
 		}
 		h.SeedAllPendingQueues(t, r.client, tc.pending)
 
-		got, _, err := r.Dequeue(tc.queueNames...)
+		got, _, err := r.Dequeue(ctx, tc.queueNames...)
 		if !cmp.Equal(got, tc.wantMsg) || !errors.Is(err, tc.wantErr) {
 			t.Errorf("Dequeue(%v) = %v, %v; want %v, %v",
 				tc.queueNames, got, err, tc.wantMsg, tc.wantErr)
@@ -740,8 +746,8 @@ func TestDone(t *testing.T) {
 		h.FlushDB(t, r.client) // clean up db before each test case
 		h.SeedAllLease(t, r.client, tc.lease)
 		h.SeedAllActiveQueues(t, r.client, tc.active)
-		for _, msgs := range tc.active {
-			for _, msg := range msgs {
+		for _, messages := range tc.active {
+			for _, msg := range messages {
 				// Set uniqueness lock if unique key is present.
 				if len(msg.UniqueKey) > 0 {
 					err := r.client.SetNX(context.Background(), msg.UniqueKey, msg.ID, time.Minute).Err()

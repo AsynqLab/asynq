@@ -164,12 +164,14 @@ func (p *processor) start(wg *sync.WaitGroup) {
 // exec pulls a task out of the queue and starts a worker goroutine to
 // process the task.
 func (p *processor) exec() {
+	ctx := context.Background()
+
 	select {
 	case <-p.quit:
 		return
 	case p.sema <- struct{}{}: // acquire token
 		queueNames := p.queues()
-		msg, leaseExpirationTime, err := p.broker.Dequeue(queueNames...)
+		msg, leaseExpirationTime, err := p.broker.Dequeue(ctx, queueNames...)
 		switch {
 		case errors.Is(err, errors.ErrNoProcessableTask):
 			p.logger.Debug("All queues are empty")

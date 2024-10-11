@@ -229,7 +229,7 @@ return nil`)
 // off a queue if one exists and returns the message and its lease expiration time.
 // Dequeue skips a queue if the queue is paused.
 // If all queues are empty, ErrNoProcessableTask error is returned.
-func (r *RDB) Dequeue(queueNames ...string) (msg *base.TaskMessage, leaseExpirationTime time.Time, err error) {
+func (r *RDB) Dequeue(ctx context.Context, queueNames ...string) (msg *base.TaskMessage, leaseExpirationTime time.Time, err error) {
 	var op errors.Op = "rdb.Dequeue"
 	for _, queueName := range queueNames {
 		keys := []string{
@@ -243,7 +243,7 @@ func (r *RDB) Dequeue(queueNames ...string) (msg *base.TaskMessage, leaseExpirat
 			leaseExpirationTime.Unix(),
 			base.TaskKeyPrefix(queueName),
 		}
-		res, err := dequeueCmd.Run(context.Background(), r.client, keys, argv...).Result()
+		res, err := dequeueCmd.Run(ctx, r.client, keys, argv...).Result()
 		if errors.Is(err, redis.Nil) {
 			continue
 		} else if err != nil {
