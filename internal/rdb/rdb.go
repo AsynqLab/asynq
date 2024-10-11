@@ -141,34 +141,6 @@ func (r *RDB) EnqueueUnique(ctx context.Context, msg *base.TaskMessage, ttl time
 	return nil
 }
 
-// Input:
-// KEYS[1] -> asynq:{<queueName>}:pending
-// KEYS[2] -> asynq:{<queueName>}:paused
-// KEYS[3] -> asynq:{<queueName>}:active
-// KEYS[4] -> asynq:{<queueName>}:lease
-// --
-// ARGV[1] -> initial lease expiration Unix time
-// ARGV[2] -> task key prefix
-//
-// Output:
-// Returns nil if no processable task is found in the given queue.
-// Returns an encoded TaskMessage.
-//
-// Note: dequeueCmd checks whether a queue is paused first, before
-// calling RPOPLPUSH to pop a task from the queue.
-var dequeueCmd = redis.NewScript(`
-if redis.call("EXISTS", KEYS[2]) == 0 then
-	local id = redis.call("RPOPLPUSH", KEYS[1], KEYS[3])
-	if id then
-		local key = ARGV[2] .. id
-		redis.call("HSET", key, "state", "active")
-		redis.call("HDEL", key, "pending_since")
-		redis.call("ZADD", KEYS[4], ARGV[1], id)
-		return redis.call("HGET", key, "msg")
-	end
-end
-return nil`)
-
 // Dequeue queries given queues in order and pops a task message
 // off a queue if one exists and returns the message and its lease expiration time.
 // Dequeue skips a queue if the queue is paused.
@@ -187,7 +159,7 @@ func (r *RDB) Dequeue(ctx context.Context, queueNames ...string) (msg *base.Task
 			leaseExpirationTime.Unix(),
 			base.TaskKeyPrefix(queueName),
 		}
-		res, err := dequeueCmd.Run(ctx, r.client, keys, argv...).Result()
+		res, err := script.DequeueCmd.Run(ctx, r.client, keys, argv...).Result()
 		if errors.Is(err, redis.Nil) {
 			continue
 		} else if err != nil {
@@ -204,38 +176,6 @@ func (r *RDB) Dequeue(ctx context.Context, queueNames ...string) (msg *base.Task
 	}
 	return nil, time.Time{}, errors.E(op, errors.NotFound, errors.ErrNoProcessableTask)
 }
-
-// KEYS[1] -> asynq:{<queueName>}:active
-// KEYS[2] -> asynq:{<queueName>}:lease
-// KEYS[3] -> asynq:{<queueName>}:t:<task_id>
-// KEYS[4] -> asynq:{<queueName>}:processed:<yyyy-mm-dd>
-// KEYS[5] -> asynq:{<queueName>}:processed
-// -------
-// ARGV[1] -> task ID
-// ARGV[2] -> stats expiration timestamp
-// ARGV[3] -> max int64 value
-var doneCmd = redis.NewScript(`
-if redis.call("LREM", KEYS[1], 0, ARGV[1]) == 0 then
-  return redis.error_reply("NOT FOUND")
-end
-if redis.call("ZREM", KEYS[2], ARGV[1]) == 0 then
-  return redis.error_reply("NOT FOUND")
-end
-if redis.call("DEL", KEYS[3]) == 0 then
-  return redis.error_reply("NOT FOUND")
-end
-local n = redis.call("INCR", KEYS[4])
-if tonumber(n) == 1 then
-	redis.call("EXPIREAT", KEYS[4], ARGV[2])
-end
-local total = redis.call("GET", KEYS[5])
-if tonumber(total) == tonumber(ARGV[3]) then
-	redis.call("SET", KEYS[5], 1)
-else
-	redis.call("INCR", KEYS[5])
-end
-return redis.status_reply("OK")
-`)
 
 // KEYS[1] -> asynq:{<queueName>}:active
 // KEYS[2] -> asynq:{<queueName>}:lease
@@ -296,7 +236,7 @@ func (r *RDB) Done(ctx context.Context, msg *base.TaskMessage) error {
 		keys = append(keys, msg.UniqueKey)
 		return r.runScript(ctx, op, doneUniqueCmd, keys, argv...)
 	}
-	return r.runScript(ctx, op, doneCmd, keys, argv...)
+	return r.runScript(ctx, op, script.DoneCmd, keys, argv...)
 }
 
 // KEYS[1] -> asynq:{<queueName>}:active
