@@ -351,8 +351,9 @@ func (l *LogLevel) String() string {
 		return "error"
 	case FatalLevel:
 		return "fatal"
+	default:
+		panic(fmt.Sprintf("asynq: unexpected log level: %v", *l))
 	}
-	panic(fmt.Sprintf("asynq: unexpected log level: %v", *l))
 }
 
 // Set is part of the flag.Value interface.
@@ -386,8 +387,9 @@ func toInternalLogLevel(l LogLevel) log.Level {
 		return log.ErrorLevel
 	case FatalLevel:
 		return log.FatalLevel
+	default:
+		panic(fmt.Sprintf("asynq: unexpected log level: %v", l))
 	}
-	panic(fmt.Sprintf("asynq: unexpected log level: %v", l))
 }
 
 // DefaultRetryDelayFunc is the default RetryDelayFunc used if one is not specified in Config.
@@ -489,7 +491,7 @@ func NewServer(r RedisConnOpt, cfg Config) *Server {
 	}
 	logger.SetLevel(toInternalLogLevel(loglevel))
 
-	rdb := rdb.NewRDB(c)
+	redisDB := rdb.NewRDB(c)
 	starting := make(chan *workerInfo)
 	finished := make(chan *base.TaskMessage)
 	syncCh := make(chan *syncRequest)
@@ -503,7 +505,7 @@ func NewServer(r RedisConnOpt, cfg Config) *Server {
 	})
 	heartbeater := newHeartbeater(heartbeaterParams{
 		logger:         logger,
-		broker:         rdb,
+		broker:         redisDB,
 		interval:       5 * time.Second,
 		concurrency:    n,
 		queues:         queues,
@@ -518,18 +520,18 @@ func NewServer(r RedisConnOpt, cfg Config) *Server {
 	}
 	forwarder := newForwarder(forwarderParams{
 		logger:   logger,
-		broker:   rdb,
+		broker:   redisDB,
 		queues:   queueNames,
 		interval: delayedTaskCheckInterval,
 	})
 	subscriber := newSubscriber(subscriberParams{
 		logger:       logger,
-		broker:       rdb,
+		broker:       redisDB,
 		cancelations: cancels,
 	})
 	processor := newProcessor(processorParams{
 		logger:            logger,
-		broker:            rdb,
+		broker:            redisDB,
 		retryDelayFunc:    delayFunc,
 		taskCheckInterval: taskCheckInterval,
 		baseCtxFn:         baseCtxFn,
@@ -546,7 +548,7 @@ func NewServer(r RedisConnOpt, cfg Config) *Server {
 	})
 	recoverer := newRecoverer(recovererParams{
 		logger:         logger,
-		broker:         rdb,
+		broker:         redisDB,
 		retryDelayFunc: delayFunc,
 		isFailureFunc:  isFailureFunc,
 		queues:         queueNames,
@@ -554,7 +556,7 @@ func NewServer(r RedisConnOpt, cfg Config) *Server {
 	})
 	healthchecker := newHealthChecker(healthcheckerParams{
 		logger:          logger,
-		broker:          rdb,
+		broker:          redisDB,
 		interval:        healthcheckInterval,
 		healthcheckFunc: cfg.HealthCheckFunc,
 	})
@@ -574,14 +576,14 @@ func NewServer(r RedisConnOpt, cfg Config) *Server {
 	}
 	janitor := newJanitor(janitorParams{
 		logger:    logger,
-		broker:    rdb,
+		broker:    redisDB,
 		queues:    queueNames,
 		interval:  janitorInterval,
 		batchSize: janitorBatchSize,
 	})
 	aggregator := newAggregator(aggregatorParams{
 		logger:          logger,
-		broker:          rdb,
+		broker:          redisDB,
 		queues:          queueNames,
 		gracePeriod:     groupGracePeriod,
 		maxDelay:        cfg.GroupMaxDelay,
@@ -590,7 +592,7 @@ func NewServer(r RedisConnOpt, cfg Config) *Server {
 	})
 	return &Server{
 		logger:        logger,
-		broker:        rdb,
+		broker:        redisDB,
 		state:         srvState,
 		forwarder:     forwarder,
 		processor:     processor,
@@ -690,11 +692,13 @@ func (srv *Server) start() error {
 	case srvStateActive:
 		return fmt.Errorf("asynq: the server is already running")
 	case srvStateStopped:
-		return fmt.Errorf("asynq: the server is in the stopped state. Waiting for shutdown.")
+		return fmt.Errorf("asynq: the server is in the stopped state. Waiting for shutdown")
 	case srvStateClosed:
 		return ErrServerClosed
+	default:
+		srv.state.value = srvStateActive
 	}
-	srv.state.value = srvStateActive
+
 	return nil
 }
 
@@ -728,7 +732,7 @@ func (srv *Server) Shutdown() {
 	srv.heartbeater.shutdown()
 	srv.wg.Wait()
 
-	srv.broker.Close()
+	_ = srv.broker.Close()
 	srv.logger.Info("Exiting")
 }
 

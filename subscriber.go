@@ -72,7 +72,7 @@ func (s *subscriber) start(wg *sync.WaitGroup) {
 		for {
 			select {
 			case <-s.done:
-				pubSub.Close()
+				_ = pubSub.Close()
 				s.logger.Debug("Subscriber done")
 				return
 			case msg := <-cancelCh:

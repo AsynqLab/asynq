@@ -19,7 +19,7 @@ type heartbeater struct {
 	broker base.Broker
 	clock  timeutil.Clock
 
-	// channel to communicate back to the long running "heartbeater" goroutine.
+	// channel to communicate back to the long-running "heartbeater" goroutine.
 	done chan struct{}
 
 	// interval between heartbeats.

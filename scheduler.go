@@ -75,7 +75,6 @@ func NewScheduler(r RedisConnOpt, opts *SchedulerOpts) *Scheduler {
 		done:            make(chan struct{}),
 		preEnqueueFunc:  opts.PreEnqueueFunc,
 		postEnqueueFunc: opts.PostEnqueueFunc,
-		errHandler:      opts.EnqueueErrorHandler,
 		idmap:           make(map[string]cron.EntryID),
 	}
 }
@@ -112,11 +111,6 @@ type SchedulerOpts struct {
 	// PostEnqueueFunc, if provided, is called after a task gets enqueued by Scheduler.
 	// The callback function should return quickly to not block the current thread.
 	PostEnqueueFunc func(info *TaskInfo, err error)
-
-	// Deprecated: Use PostEnqueueFunc instead
-	// EnqueueErrorHandler gets called when scheduler cannot enqueue a registered task
-	// due to an error.
-	EnqueueErrorHandler func(task *Task, opts []Option, err error)
 }
 
 // enqueueJob encapsulates the job of enqueuing a task and recording the event.
@@ -225,7 +219,7 @@ func (s *Scheduler) Start() error {
 }
 
 // Checks server state and returns an error if pre-condition is not met.
-// Otherwise it sets the server state to active.
+// Otherwise, it sets the server state to active.
 func (s *Scheduler) start() error {
 	s.state.mu.Lock()
 	defer s.state.mu.Unlock()
@@ -257,8 +251,8 @@ func (s *Scheduler) Shutdown() {
 	s.wg.Wait()
 
 	s.clearHistory()
-	s.client.Close()
-	s.rdb.Close()
+	_ = s.client.Close()
+	_ = s.rdb.Close()
 	s.logger.Info("Scheduler stopped")
 }
 
@@ -269,7 +263,7 @@ func (s *Scheduler) runHeartbeater() {
 		select {
 		case <-s.done:
 			s.logger.Debugf("Scheduler heatbeater shutting down")
-			s.rdb.ClearSchedulerEntries(s.id)
+			_ = s.rdb.ClearSchedulerEntries(s.id)
 			ticker.Stop()
 			return
 		case <-ticker.C:
