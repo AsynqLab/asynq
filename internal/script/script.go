@@ -3,6 +3,7 @@ package script
 import (
 	"embed"
 	"fmt"
+	"sync"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -10,53 +11,97 @@ import (
 //go:embed *.lua
 var luaScripts embed.FS
 
-func loadLuaScript(name string) (string, error) {
+var (
+	scriptCache     = make(map[string]*redis.Script)
+	scriptCacheLock sync.RWMutex
+)
+
+func loadLuaScript(name string) (*redis.Script, error) {
+	scriptCacheLock.RLock()
+	script, ok := scriptCache[name]
+	scriptCacheLock.RUnlock()
+
+	if ok {
+		return script, nil
+	}
+
+	scriptCacheLock.Lock()
+	defer scriptCacheLock.Unlock()
+
+	// Double-check in case another goroutine has loaded the script
+	if script, ok := scriptCache[name]; ok {
+		return script, nil
+	}
+
 	content, err := luaScripts.ReadFile(fmt.Sprintf("%s.lua", name))
 	if err != nil {
-		return "", fmt.Errorf("failed to read Lua script %s: %w", name, err)
+		return nil, fmt.Errorf("failed to read Lua script %s: %w", name, err)
 	}
-	return string(content), nil
+
+	script = redis.NewScript(string(content))
+	scriptCache[name] = script
+	return script, nil
 }
 
 var (
-	EnqueueCmd       *redis.Script
-	EnqueueUniqueCmd *redis.Script
-	DequeueCmd       *redis.Script
-	DoneCmd          *redis.Script
+	EnqueueCmd              *redis.Script
+	EnqueueUniqueCmd        *redis.Script
+	DequeueCmd              *redis.Script
+	DoneCmd                 *redis.Script
+	DoneUniqueCmd           *redis.Script
+	MarkAsCompleteCmd       *redis.Script
+	MarkAsCompleteUniqueCmd *redis.Script
 )
 
 const (
-	enqueueCmd       = "enqueue"
-	enqueueUniqueCmd = "enqueueUnique"
-	dequeueCmd       = "dequeue"
-	doneCmd          = "done"
+	enqueueCmd              = "enqueue"
+	enqueueUniqueCmd        = "enqueueUnique"
+	dequeueCmd              = "dequeue"
+	doneCmd                 = "done"
+	doneUniqueCmd           = "doneUnique"
+	markAsCompleteCmd       = "markAsComplete"
+	markAsCompleteUniqueCmd = "markAsCompleteUnique"
 )
 
-// Use this function to initialize your Redis scripts
 func init() {
-	enqueueLua, err := loadLuaScript(enqueueCmd)
+	var err error
+	EnqueueCmd, err = loadLuaScript(enqueueCmd)
 	if err != nil {
 		panic(err)
 	}
 
-	enqueueUniqueLua, err := loadLuaScript(enqueueUniqueCmd)
+	EnqueueUniqueCmd, err = loadLuaScript(enqueueUniqueCmd)
 	if err != nil {
 		panic(err)
 	}
 
-	dequeueLua, err := loadLuaScript(dequeueCmd)
+	DequeueCmd, err = loadLuaScript(dequeueCmd)
 	if err != nil {
 		panic(err)
 	}
 
-	doneLua, err := loadLuaScript(doneCmd)
+	DoneCmd, err = loadLuaScript(doneCmd)
 	if err != nil {
 		panic(err)
 	}
 
-	// Initialize Redis scripts here
-	EnqueueCmd = redis.NewScript(enqueueLua)
-	EnqueueUniqueCmd = redis.NewScript(enqueueUniqueLua)
-	DequeueCmd = redis.NewScript(dequeueLua)
-	DoneCmd = redis.NewScript(doneLua)
+	DoneUniqueCmd, err = loadLuaScript(doneUniqueCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	MarkAsCompleteCmd, err = loadLuaScript(markAsCompleteCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	MarkAsCompleteUniqueCmd, err = loadLuaScript(markAsCompleteUniqueCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	MarkAsCompleteUniqueCmd, err = loadLuaScript(markAsCompleteCmd)
+	if err != nil {
+		panic(err)
+	}
 }

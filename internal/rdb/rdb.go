@@ -177,42 +177,6 @@ func (r *RDB) Dequeue(ctx context.Context, queueNames ...string) (msg *base.Task
 	return nil, time.Time{}, errors.E(op, errors.NotFound, errors.ErrNoProcessableTask)
 }
 
-// KEYS[1] -> asynq:{<queueName>}:active
-// KEYS[2] -> asynq:{<queueName>}:lease
-// KEYS[3] -> asynq:{<queueName>}:t:<task_id>
-// KEYS[4] -> asynq:{<queueName>}:processed:<yyyy-mm-dd>
-// KEYS[5] -> asynq:{<queueName>}:processed
-// KEYS[6] -> unique key
-// -------
-// ARGV[1] -> task ID
-// ARGV[2] -> stats expiration timestamp
-// ARGV[3] -> max int64 value
-var doneUniqueCmd = redis.NewScript(`
-if redis.call("LREM", KEYS[1], 0, ARGV[1]) == 0 then
-  return redis.error_reply("NOT FOUND")
-end
-if redis.call("ZREM", KEYS[2], ARGV[1]) == 0 then
-  return redis.error_reply("NOT FOUND")
-end
-if redis.call("DEL", KEYS[3]) == 0 then
-  return redis.error_reply("NOT FOUND")
-end
-local n = redis.call("INCR", KEYS[4])
-if tonumber(n) == 1 then
-	redis.call("EXPIREAT", KEYS[4], ARGV[2])
-end
-local total = redis.call("GET", KEYS[5])
-if tonumber(total) == tonumber(ARGV[3]) then
-	redis.call("SET", KEYS[5], 1)
-else
-	redis.call("INCR", KEYS[5])
-end
-if redis.call("GET", KEYS[6]) == ARGV[1] then
-  redis.call("DEL", KEYS[6])
-end
-return redis.status_reply("OK")
-`)
-
 // Done removes the task from active queue and deletes the task.
 // It removes a uniqueness lock acquired by the task, if any.
 func (r *RDB) Done(ctx context.Context, msg *base.TaskMessage) error {
@@ -234,86 +198,10 @@ func (r *RDB) Done(ctx context.Context, msg *base.TaskMessage) error {
 	// Note: We cannot pass empty unique key when running this script in redis-cluster.
 	if len(msg.UniqueKey) > 0 {
 		keys = append(keys, msg.UniqueKey)
-		return r.runScript(ctx, op, doneUniqueCmd, keys, argv...)
+		return r.runScript(ctx, op, script.DoneUniqueCmd, keys, argv...)
 	}
 	return r.runScript(ctx, op, script.DoneCmd, keys, argv...)
 }
-
-// KEYS[1] -> asynq:{<queueName>}:active
-// KEYS[2] -> asynq:{<queueName>}:lease
-// KEYS[3] -> asynq:{<queueName>}:completed
-// KEYS[4] -> asynq:{<queueName>}:t:<task_id>
-// KEYS[5] -> asynq:{<queueName>}:processed:<yyyy-mm-dd>
-// KEYS[6] -> asynq:{<queueName>}:processed
-//
-// ARGV[1] -> task ID
-// ARGV[2] -> stats expiration timestamp
-// ARGV[3] -> task expiration time in unix time
-// ARGV[4] -> task message data
-// ARGV[5] -> max int64 value
-var markAsCompleteCmd = redis.NewScript(`
-if redis.call("LREM", KEYS[1], 0, ARGV[1]) == 0 then
-  return redis.error_reply("NOT FOUND")
-end
-if redis.call("ZREM", KEYS[2], ARGV[1]) == 0 then
-  return redis.error_reply("NOT FOUND")
-end
-if redis.call("ZADD", KEYS[3], ARGV[3], ARGV[1]) ~= 1 then
-  return redis.error_reply("INTERNAL")
-end
-redis.call("HSET", KEYS[4], "msg", ARGV[4], "state", "completed")
-local n = redis.call("INCR", KEYS[5])
-if tonumber(n) == 1 then
-	redis.call("EXPIREAT", KEYS[5], ARGV[2])
-end
-local total = redis.call("GET", KEYS[6])
-if tonumber(total) == tonumber(ARGV[5]) then
-	redis.call("SET", KEYS[6], 1)
-else
-	redis.call("INCR", KEYS[6])
-end
-return redis.status_reply("OK")
-`)
-
-// KEYS[1] -> asynq:{<queueName>}:active
-// KEYS[2] -> asynq:{<queueName>}:lease
-// KEYS[3] -> asynq:{<queueName>}:completed
-// KEYS[4] -> asynq:{<queueName>}:t:<task_id>
-// KEYS[5] -> asynq:{<queueName>}:processed:<yyyy-mm-dd>
-// KEYS[6] -> asynq:{<queueName>}:processed
-// KEYS[7] -> asynq:{<queueName>}:unique:{<checksum>}
-//
-// ARGV[1] -> task ID
-// ARGV[2] -> stats expiration timestamp
-// ARGV[3] -> task expiration time in unix time
-// ARGV[4] -> task message data
-// ARGV[5] -> max int64 value
-var markAsCompleteUniqueCmd = redis.NewScript(`
-if redis.call("LREM", KEYS[1], 0, ARGV[1]) == 0 then
-  return redis.error_reply("NOT FOUND")
-end
-if redis.call("ZREM", KEYS[2], ARGV[1]) == 0 then
-  return redis.error_reply("NOT FOUND")
-end
-if redis.call("ZADD", KEYS[3], ARGV[3], ARGV[1]) ~= 1 then
-  return redis.error_reply("INTERNAL")
-end
-redis.call("HSET", KEYS[4], "msg", ARGV[4], "state", "completed")
-local n = redis.call("INCR", KEYS[5])
-if tonumber(n) == 1 then
-	redis.call("EXPIREAT", KEYS[5], ARGV[2])
-end
-local total = redis.call("GET", KEYS[6])
-if tonumber(total) == tonumber(ARGV[5]) then
-	redis.call("SET", KEYS[6], 1)
-else
-	redis.call("INCR", KEYS[6])
-end
-if redis.call("GET", KEYS[7]) == ARGV[1] then
-  redis.call("DEL", KEYS[7])
-end
-return redis.status_reply("OK")
-`)
 
 // MarkAsComplete removes the task from active queue to mark the task as completed.
 // It removes a uniqueness lock acquired by the task, if any.
@@ -344,9 +232,9 @@ func (r *RDB) MarkAsComplete(ctx context.Context, msg *base.TaskMessage) error {
 	// Note: We cannot pass empty unique key when running this script in redis-cluster.
 	if len(msg.UniqueKey) > 0 {
 		keys = append(keys, msg.UniqueKey)
-		return r.runScript(ctx, op, markAsCompleteUniqueCmd, keys, argv...)
+		return r.runScript(ctx, op, script.MarkAsCompleteUniqueCmd, keys, argv...)
 	}
-	return r.runScript(ctx, op, markAsCompleteCmd, keys, argv...)
+	return r.runScript(ctx, op, script.MarkAsCompleteCmd, keys, argv...)
 }
 
 // KEYS[1] -> asynq:{<queueName>}:active
