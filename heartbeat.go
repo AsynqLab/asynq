@@ -12,14 +12,14 @@ import (
 	"github.com/google/uuid"
 )
 
-// heartbeater is responsible for writing process info to redis periodically to
+// heartBeater is responsible for writing process info to redis periodically to
 // indicate that the background worker process is up.
-type heartbeater struct {
+type heartBeater struct {
 	logger *log.Logger
 	broker base.Broker
 	clock  timeutil.Clock
 
-	// channel to communicate back to the long-running "heartbeater" goroutine.
+	// channel to communicate back to the long-running "heartBeater" goroutine.
 	done chan struct{}
 
 	// interval between heartbeats.
@@ -34,7 +34,7 @@ type heartbeater struct {
 	strictPriority bool
 
 	// following fields are mutable and should be accessed only by the
-	// heartbeater goroutine. In other words, confine these variables
+	// heartBeater goroutine. In other words, confine these variables
 	// to this goroutine only.
 	started time.Time
 	workers map[string]*workerInfo
@@ -59,13 +59,13 @@ type heartbeaterParams struct {
 	finished       <-chan *base.TaskMessage
 }
 
-func newHeartbeater(params heartbeaterParams) *heartbeater {
+func newHeartbeater(params heartbeaterParams) *heartBeater {
 	host, err := os.Hostname()
 	if err != nil {
 		host = "unknown-host"
 	}
 
-	return &heartbeater{
+	return &heartBeater{
 		logger:   params.logger,
 		broker:   params.broker,
 		clock:    timeutil.NewRealClock(),
@@ -86,9 +86,9 @@ func newHeartbeater(params heartbeaterParams) *heartbeater {
 	}
 }
 
-func (h *heartbeater) shutdown() {
+func (h *heartBeater) shutdown() {
 	h.logger.Debug("Heartbeater shutting down...")
-	// Signal the heartbeater goroutine to stop.
+	// Signal the heartBeater goroutine to stop.
 	h.done <- struct{}{}
 }
 
@@ -104,7 +104,7 @@ type workerInfo struct {
 	lease *base.Lease
 }
 
-func (h *heartbeater) start(wg *sync.WaitGroup) {
+func (h *heartBeater) start(wg *sync.WaitGroup) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -137,7 +137,7 @@ func (h *heartbeater) start(wg *sync.WaitGroup) {
 }
 
 // beat extends lease for workers and writes server/worker info to redis.
-func (h *heartbeater) beat() {
+func (h *heartBeater) beat() {
 	ctx := context.Background()
 
 	h.state.mu.Lock()

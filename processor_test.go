@@ -517,7 +517,7 @@ func TestProcessorWithExpiredLease(t *testing.T) {
 		syncCh := make(chan *syncRequest)
 		done := make(chan struct{})
 		t.Cleanup(func() { close(done) })
-		// fake heartbeater which notifies lease expiration
+		// fake heartBeater which notifies lease expiration
 		go func() {
 			for {
 				select {

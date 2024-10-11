@@ -41,7 +41,7 @@ type Server struct {
 	forwarder     *forwarder
 	processor     *processor
 	syncer        *syncer
-	heartbeater   *heartbeater
+	heartbeater   *heartBeater
 	subscriber    *subscriber
 	recoverer     *recoverer
 	healthchecker *healthchecker
@@ -720,7 +720,7 @@ func (srv *Server) Shutdown() {
 	// Note: The order of shutdown is important.
 	// Sender goroutines should be terminated before the receiver goroutines.
 	// processor -> syncer (via syncCh)
-	// processor -> heartbeater (via starting, finished channels)
+	// processor -> heartBeater (via starting, finished channels)
 	srv.forwarder.shutdown()
 	srv.processor.shutdown()
 	srv.recoverer.shutdown()

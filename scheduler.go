@@ -245,7 +245,7 @@ func (s *Scheduler) Shutdown() {
 	s.state.mu.Unlock()
 
 	s.logger.Info("Scheduler shutting down")
-	close(s.done) // signal heartbeater to stop
+	close(s.done) // signal heartBeater to stop
 	ctx := s.cron.Stop()
 	<-ctx.Done()
 	s.wg.Wait()

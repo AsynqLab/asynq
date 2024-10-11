@@ -9,6 +9,9 @@ build:
 test:
 	go test -v ./...
 
+format:
+	gofumpt -l -w .
+
 proto: internal/proto/asynq.proto
 	protoc -I=$(ROOT_DIR)/internal/proto \
 				 --go_out=$(ROOT_DIR)/internal/proto \

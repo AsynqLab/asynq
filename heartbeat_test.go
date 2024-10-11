@@ -198,7 +198,7 @@ func TestHeartbeater(t *testing.T) {
 			startingCh <- w
 		}
 
-		// Wait for heartbeater to write to redis
+		// Wait for heartBeater to write to redis
 		time.Sleep(tc.interval * 2)
 
 		ss, err := rdbClient.ListServers()
@@ -254,7 +254,7 @@ func TestHeartbeater(t *testing.T) {
 			}
 			finishedCh <- msg
 		}
-		// Wait for heartbeater to write to redis
+		// Wait for heartBeater to write to redis
 		time.Sleep(tc.interval * 2)
 
 		for queueName, wantLease := range tc.wantLease2 {
@@ -273,7 +273,7 @@ func TestHeartbeater(t *testing.T) {
 		srvState.value = srvStateClosed
 		srvState.mu.Unlock()
 
-		// Wait for heartbeater to write to redis
+		// Wait for heartBeater to write to redis
 		time.Sleep(tc.interval * 2)
 
 		wantInfo = &base.ServerInfo{
@@ -309,7 +309,7 @@ func TestHeartbeater(t *testing.T) {
 }
 
 func TestHeartbeaterWithRedisDown(t *testing.T) {
-	// Make sure that heartbeater goroutine doesn't panic
+	// Make sure that heartBeater goroutine doesn't panic
 	// if it cannot connect to redis.
 	defer func() {
 		if r := recover(); r != nil {
@@ -336,7 +336,7 @@ func TestHeartbeaterWithRedisDown(t *testing.T) {
 	var wg sync.WaitGroup
 	hb.start(&wg)
 
-	// wait for heartbeater to try writing data to redis
+	// wait for heartBeater to try writing data to redis
 	time.Sleep(2 * time.Second)
 
 	hb.shutdown()
