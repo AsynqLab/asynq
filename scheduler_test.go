@@ -78,7 +78,7 @@ func TestSchedulerWhenRedisDown(t *testing.T) {
 		mu      sync.Mutex
 		counter int
 	)
-	errorHandler := func(task *Task, opts []Option, err error) {
+	postEnqueueHandler := func(info *TaskInfo, err error) {
 		mu.Lock()
 		counter++
 		mu.Unlock()
@@ -87,7 +87,7 @@ func TestSchedulerWhenRedisDown(t *testing.T) {
 	// Connect to non-existent redis instance to simulate a redis server being down.
 	scheduler := NewScheduler(
 		RedisClientOpt{Addr: ":9876"},
-		&SchedulerOpts{EnqueueErrorHandler: errorHandler},
+		&SchedulerOpts{PostEnqueueFunc: postEnqueueHandler},
 	)
 
 	task := NewTask("test", nil)
@@ -105,7 +105,7 @@ func TestSchedulerWhenRedisDown(t *testing.T) {
 
 	mu.Lock()
 	if counter != 3 {
-		t.Errorf("EnqueueErrorHandler was called %d times, want 3", counter)
+		t.Errorf("PostEnqueueFunc was called %d times, want 3", counter)
 	}
 	mu.Unlock()
 }
