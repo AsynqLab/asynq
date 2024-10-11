@@ -244,7 +244,7 @@ func (r *RDB) Dequeue(qnames ...string) (msg *base.TaskMessage, leaseExpirationT
 			base.TaskKeyPrefix(qname),
 		}
 		res, err := dequeueCmd.Run(context.Background(), r.client, keys, argv...).Result()
-		if err == redis.Nil {
+		if errors.Is(err, redis.Nil) {
 			continue
 		} else if err != nil {
 			return nil, time.Time{}, errors.E(op, errors.Unknown, fmt.Sprintf("redis eval error: %v", err))
