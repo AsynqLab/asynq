@@ -4,6 +4,7 @@ package rdb
 import (
 	"context"
 	"fmt"
+	"github.com/AsynqLab/asynq/internal/script"
 	"math"
 	"time"
 
@@ -76,31 +77,6 @@ func (r *RDB) runScriptWithErrorCode(ctx context.Context, op errors.Op, script *
 	return n, nil
 }
 
-// enqueueCmd enqueues a given task message.
-//
-// Input:
-// KEYS[1] -> asynq:{<queueName>}:t:<task_id>
-// KEYS[2] -> asynq:{<queueName>}:pending
-// --
-// ARGV[1] -> task message data
-// ARGV[2] -> task ID
-// ARGV[3] -> current unix time in nsec
-//
-// Output:
-// Returns 1 if successfully enqueued
-// Returns 0 if task ID already exists
-var enqueueCmd = redis.NewScript(`
-if redis.call("EXISTS", KEYS[1]) == 1 then
-	return 0
-end
-redis.call("HSET", KEYS[1],
-           "msg", ARGV[1],
-           "state", "pending",
-           "pending_since", ARGV[3])
-redis.call("LPUSH", KEYS[2], ARGV[2])
-return 1
-`)
-
 // Enqueue adds the given task to the pending list of the queue.
 func (r *RDB) Enqueue(ctx context.Context, msg *base.TaskMessage) error {
 	var op errors.Op = "rdb.Enqueue"
@@ -120,7 +96,7 @@ func (r *RDB) Enqueue(ctx context.Context, msg *base.TaskMessage) error {
 		msg.ID,
 		r.clock.Now().UnixNano(),
 	}
-	n, err := r.runScriptWithErrorCode(ctx, op, enqueueCmd, keys, argv...)
+	n, err := r.runScriptWithErrorCode(ctx, op, script.EnqueueCmd, keys, argv...)
 	if err != nil {
 		return err
 	}
