@@ -937,7 +937,7 @@ for _, id in ipairs(ids) do
 end
 return table.getn(ids)`)
 
-// forward moves tasks with a score less than the current unix time from the delayed (i.e. scheduled | retry) zset
+// forward moves tasks with a score less than the current unix time from the delayed (i.e., scheduled | retry) zset
 // to the pending list or group set.
 // It returns the number of tasks moved.
 func (r *RDB) forward(delayedKey, pendingKey, taskKeyPrefix, groupKeyPrefix string) (int, error) {

@@ -199,13 +199,13 @@ type Config struct {
 	// connected redis server.
 	HealthCheckFunc func(error)
 
-	// HealthCheckInterval specifies the interval between healthchecks.
+	// HealthCheckInterval specifies the interval between health checks.
 	//
 	// If unset or zero, the interval is set to 15 seconds.
 	HealthCheckInterval time.Duration
 
 	// DelayedTaskCheckInterval specifies the interval between checks run on 'scheduled' and 'retry'
-	// tasks, and forwarding them to 'pending' state if they are ready to be processed.
+	// tasks, and are forwarding them to 'pending' state if they are ready to be processed.
 	//
 	// If unset or zero, the interval is set to 5 seconds.
 	DelayedTaskCheckInterval time.Duration
@@ -215,7 +215,7 @@ type Config struct {
 	// period of the same length, up to GroupMaxDelay if specified.
 	//
 	// If unset or zero, the grace period is set to 1 minute.
-	// Minimum duration for GroupGracePeriod is 1 second. If value specified is less than a second, the call to
+	// Minimum duration for GroupGracePeriod is 1 second. If the value specified is less than a second, the call to
 	// NewServer will panic.
 	GroupGracePeriod time.Duration
 

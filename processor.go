@@ -164,13 +164,12 @@ func (p *processor) start(wg *sync.WaitGroup) {
 // exec pulls a task out of the queue and starts a worker goroutine to
 // process the task.
 func (p *processor) exec() {
-	ctx := context.Background()
-
 	select {
 	case <-p.quit:
 		return
 	case p.sema <- struct{}{}: // acquire token
 		queueNames := p.queues()
+		ctx := context.Background()
 		msg, leaseExpirationTime, err := p.broker.Dequeue(ctx, queueNames...)
 		switch {
 		case errors.Is(err, errors.ErrNoProcessableTask):
@@ -234,7 +233,7 @@ func (p *processor) exec() {
 			case <-p.abort:
 				// time is up, push the message back to queue and quit this worker goroutine.
 				p.logger.Warnf("Quitting worker. task id=%s", msg.ID)
-				p.requeue(lease, msg)
+				p.requeue(ctx, lease, msg)
 				return
 			case <-lease.Done():
 				cancel()
@@ -248,18 +247,17 @@ func (p *processor) exec() {
 					p.handleFailedMessage(ctx, lease, msg, resErr)
 					return
 				}
-				p.handleSucceededMessage(lease, msg)
+				p.handleSucceededMessage(ctx, lease, msg)
 			}
 		}()
 	}
 }
 
-func (p *processor) requeue(l *base.Lease, msg *base.TaskMessage) {
+func (p *processor) requeue(ctx context.Context, l *base.Lease, msg *base.TaskMessage) {
 	if !l.IsValid() {
 		// If lease is not valid, do not write to redis; Let recoverer take care of it.
 		return
 	}
-	ctx, _ := context.WithDeadline(context.Background(), l.Deadline())
 	err := p.broker.Requeue(ctx, msg)
 	if err != nil {
 		p.logger.Errorf("Could not push task id=%s back to queue: %v", msg.ID, err)
@@ -268,20 +266,19 @@ func (p *processor) requeue(l *base.Lease, msg *base.TaskMessage) {
 	}
 }
 
-func (p *processor) handleSucceededMessage(l *base.Lease, msg *base.TaskMessage) {
+func (p *processor) handleSucceededMessage(ctx context.Context, l *base.Lease, msg *base.TaskMessage) {
 	if msg.Retention > 0 {
-		p.markAsComplete(l, msg)
+		p.markAsComplete(ctx, l, msg)
 	} else {
-		p.markAsDone(l, msg)
+		p.markAsDone(ctx, l, msg)
 	}
 }
 
-func (p *processor) markAsComplete(l *base.Lease, msg *base.TaskMessage) {
+func (p *processor) markAsComplete(ctx context.Context, l *base.Lease, msg *base.TaskMessage) {
 	if !l.IsValid() {
 		// If lease is not valid, do not write to redis; Let recoverer take care of it.
 		return
 	}
-	ctx, _ := context.WithDeadline(context.Background(), l.Deadline())
 	err := p.broker.MarkAsComplete(ctx, msg)
 	if err != nil {
 		errMsg := fmt.Sprintf("Could not move task id=%s type=%q from %q to %q:  %+v",
@@ -297,12 +294,11 @@ func (p *processor) markAsComplete(l *base.Lease, msg *base.TaskMessage) {
 	}
 }
 
-func (p *processor) markAsDone(l *base.Lease, msg *base.TaskMessage) {
+func (p *processor) markAsDone(ctx context.Context, l *base.Lease, msg *base.TaskMessage) {
 	if !l.IsValid() {
 		// If lease is not valid, do not write to redis; Let recoverer take care of it.
 		return
 	}
-	ctx, _ := context.WithDeadline(context.Background(), l.Deadline())
 	err := p.broker.Done(ctx, msg)
 	if err != nil {
 		errMsg := fmt.Sprintf("Could not remove task id=%s type=%q from %q err: %+v", msg.ID, msg.Type, base.ActiveKey(msg.Queue), err)
@@ -327,23 +323,22 @@ func (p *processor) handleFailedMessage(ctx context.Context, l *base.Lease, msg 
 	}
 	if !p.isFailureFunc(err) {
 		// retry the task without marking it as failed
-		p.retry(l, msg, err, false /*isFailure*/)
+		p.retry(ctx, l, msg, err, false /*isFailure*/)
 		return
 	}
 	if msg.Retried >= msg.Retry || errors.Is(err, SkipRetry) {
 		p.logger.Warnf("Retry exhausted for task id=%s", msg.ID)
-		p.archive(l, msg, err)
+		p.archive(ctx, l, msg, err)
 	} else {
-		p.retry(l, msg, err, true /*isFailure*/)
+		p.retry(ctx, l, msg, err, true /*isFailure*/)
 	}
 }
 
-func (p *processor) retry(l *base.Lease, msg *base.TaskMessage, e error, isFailure bool) {
+func (p *processor) retry(ctx context.Context, l *base.Lease, msg *base.TaskMessage, e error, isFailure bool) {
 	if !l.IsValid() {
 		// If lease is not valid, do not write to redis; Let recoverer take care of it.
 		return
 	}
-	ctx, _ := context.WithDeadline(context.Background(), l.Deadline())
 	d := p.retryDelayFunc(msg.Retried, e, NewTask(msg.Type, msg.Payload))
 	retryAt := time.Now().Add(d)
 	err := p.broker.Retry(ctx, msg, retryAt, e.Error(), isFailure)
@@ -360,12 +355,11 @@ func (p *processor) retry(l *base.Lease, msg *base.TaskMessage, e error, isFailu
 	}
 }
 
-func (p *processor) archive(l *base.Lease, msg *base.TaskMessage, e error) {
+func (p *processor) archive(ctx context.Context, l *base.Lease, msg *base.TaskMessage, e error) {
 	if !l.IsValid() {
 		// If lease is not valid, do not write to redis; Let recoverer take care of it.
 		return
 	}
-	ctx, _ := context.WithDeadline(context.Background(), l.Deadline())
 	err := p.broker.Archive(ctx, msg, e.Error())
 	if err != nil {
 		errMsg := fmt.Sprintf("Could not move task id=%s from %q to %q", msg.ID, base.ActiveKey(msg.Queue), base.ArchivedKey(msg.Queue))
