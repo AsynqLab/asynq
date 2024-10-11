@@ -30,8 +30,8 @@ type muxEntry struct {
 	pattern string
 }
 
-// MiddlewareFunc is a function which receives an asynq.Handler and returns another asynq.Handler.
-// Typically, the returned handler is a closure which does something with the context and task passed
+// MiddlewareFunc is a function that receives an asynq.Handler and returns another asynq.Handler.
+// Typically, the returned handler is a closure that does something with the context and task passed
 // to it, and then calls the handler passed as parameter to the MiddlewareFunc.
 type MiddlewareFunc func(Handler) Handler
 
@@ -48,7 +48,7 @@ func (mux *ServeMux) ProcessTask(ctx context.Context, task *Task) error {
 }
 
 // Handler returns the handler to use for the given task.
-// It always return a non-nil handler.
+// It always returns a non-nil handler.
 //
 // Handler also returns the registered pattern that matches the task.
 //
