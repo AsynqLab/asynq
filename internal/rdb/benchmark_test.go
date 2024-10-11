@@ -116,7 +116,7 @@ func BenchmarkDequeueSingleQueue(b *testing.B) {
 }
 
 func BenchmarkDequeueMultipleQueues(b *testing.B) {
-	qnames := []string{"critical", "default", "low"}
+	queueNames := []string{"critical", "default", "low"}
 	r := setup(b)
 	ctx := context.Background()
 	b.ResetTimer()
@@ -125,7 +125,7 @@ func BenchmarkDequeueMultipleQueues(b *testing.B) {
 		b.StopTimer()
 		testutil.FlushDB(b, r.client)
 		for i := 0; i < 10; i++ {
-			for _, qname := range qnames {
+			for _, qname := range queueNames {
 				m := testutil.NewTaskMessageWithQueue(
 					fmt.Sprintf("%s_task%d", qname, i), nil, qname)
 				if err := r.Enqueue(ctx, m); err != nil {
@@ -135,7 +135,7 @@ func BenchmarkDequeueMultipleQueues(b *testing.B) {
 		}
 		b.StartTimer()
 
-		if _, _, err := r.Dequeue(qnames...); err != nil {
+		if _, _, err := r.Dequeue(queueNames...); err != nil {
 			b.Fatalf("Dequeue failed: %v", err)
 		}
 	}

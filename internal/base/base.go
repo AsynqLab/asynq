@@ -674,7 +674,7 @@ type Broker interface {
 	Close() error
 	Enqueue(ctx context.Context, msg *TaskMessage) error
 	EnqueueUnique(ctx context.Context, msg *TaskMessage, ttl time.Duration) error
-	Dequeue(qnames ...string) (*TaskMessage, time.Time, error)
+	Dequeue(queueNames ...string) (*TaskMessage, time.Time, error)
 	Done(ctx context.Context, msg *TaskMessage) error
 	MarkAsComplete(ctx context.Context, msg *TaskMessage) error
 	Requeue(ctx context.Context, msg *TaskMessage) error
@@ -682,7 +682,7 @@ type Broker interface {
 	ScheduleUnique(ctx context.Context, msg *TaskMessage, processAt time.Time, ttl time.Duration) error
 	Retry(ctx context.Context, msg *TaskMessage, processAt time.Time, errMsg string, isFailure bool) error
 	Archive(ctx context.Context, msg *TaskMessage, errMsg string) error
-	ForwardIfReady(qnames ...string) error
+	ForwardIfReady(queueNames ...string) error
 
 	/*
 		Group aggregation related methods
@@ -703,7 +703,7 @@ type Broker interface {
 	/*
 		Lease related methods
 	*/
-	ListLeaseExpired(ctx context.Context, cutoff time.Time, qnames ...string) ([]*TaskMessage, error)
+	ListLeaseExpired(ctx context.Context, cutoff time.Time, queueNames ...string) ([]*TaskMessage, error)
 	ExtendLease(ctx context.Context, qname string, ids ...string) (time.Time, error)
 
 	/*

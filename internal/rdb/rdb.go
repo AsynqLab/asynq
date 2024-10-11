@@ -229,9 +229,9 @@ return nil`)
 // off a queue if one exists and returns the message and its lease expiration time.
 // Dequeue skips a queue if the queue is paused.
 // If all queues are empty, ErrNoProcessableTask error is returned.
-func (r *RDB) Dequeue(qnames ...string) (msg *base.TaskMessage, leaseExpirationTime time.Time, err error) {
+func (r *RDB) Dequeue(queueNames ...string) (msg *base.TaskMessage, leaseExpirationTime time.Time, err error) {
 	var op errors.Op = "rdb.Dequeue"
-	for _, qname := range qnames {
+	for _, qname := range queueNames {
 		keys := []string{
 			base.PendingKey(qname),
 			base.PausedKey(qname),
@@ -900,9 +900,9 @@ func (r *RDB) Archive(ctx context.Context, msg *base.TaskMessage, errMsg string)
 
 // ForwardIfReady checks scheduled and retry sets of the given queues
 // and move any tasks that are ready to be processed to the pending set.
-func (r *RDB) ForwardIfReady(qnames ...string) error {
+func (r *RDB) ForwardIfReady(queueNames ...string) error {
 	var op errors.Op = "rdb.ForwardIfReady"
-	for _, qname := range qnames {
+	for _, qname := range queueNames {
 		if err := r.forwardAll(qname); err != nil {
 			return errors.E(op, errors.CanonicalCode(err), err)
 		}
@@ -1287,10 +1287,10 @@ return res
 `)
 
 // ListLeaseExpired returns a list of task messages with an expired lease from the given queues.
-func (r *RDB) ListLeaseExpired(ctx context.Context, cutoff time.Time, qnames ...string) ([]*base.TaskMessage, error) {
+func (r *RDB) ListLeaseExpired(ctx context.Context, cutoff time.Time, queueNames ...string) ([]*base.TaskMessage, error) {
 	var op errors.Op = "rdb.ListLeaseExpired"
 	var msgs []*base.TaskMessage
-	for _, qname := range qnames {
+	for _, qname := range queueNames {
 		res, err := listLeaseExpiredCmd.Run(ctx, r.client,
 			[]string{base.LeaseKey(qname)},
 			cutoff.Unix(), base.TaskKeyPrefix(qname)).Result()
@@ -1445,12 +1445,12 @@ func (r *RDB) ClearSchedulerEntries(scheduelrID string) error {
 func (r *RDB) CancellationPubSub() (*redis.PubSub, error) {
 	var op errors.Op = "rdb.CancellationPubSub"
 	ctx := context.Background()
-	pubsub := r.client.Subscribe(ctx, base.CancelChannel)
-	_, err := pubsub.Receive(ctx)
+	pubSub := r.client.Subscribe(ctx, base.CancelChannel)
+	_, err := pubSub.Receive(ctx)
 	if err != nil {
-		return nil, errors.E(op, errors.Unknown, fmt.Sprintf("redis pubsub receive error: %v", err))
+		return nil, errors.E(op, errors.Unknown, fmt.Sprintf("redis pubSub receive error: %v", err))
 	}
-	return pubsub, nil
+	return pubSub, nil
 }
 
 // PublishCancellation publish cancellation message to all subscribers.

@@ -60,13 +60,13 @@ func (tb *TestBroker) EnqueueUnique(ctx context.Context, msg *base.TaskMessage, 
 	return tb.real.EnqueueUnique(ctx, msg, ttl)
 }
 
-func (tb *TestBroker) Dequeue(qnames ...string) (*base.TaskMessage, time.Time, error) {
+func (tb *TestBroker) Dequeue(queueNames ...string) (*base.TaskMessage, time.Time, error) {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return nil, time.Time{}, errRedisDown
 	}
-	return tb.real.Dequeue(qnames...)
+	return tb.real.Dequeue(queueNames...)
 }
 
 func (tb *TestBroker) Done(ctx context.Context, msg *base.TaskMessage) error {
@@ -132,13 +132,13 @@ func (tb *TestBroker) Archive(ctx context.Context, msg *base.TaskMessage, errMsg
 	return tb.real.Archive(ctx, msg, errMsg)
 }
 
-func (tb *TestBroker) ForwardIfReady(qnames ...string) error {
+func (tb *TestBroker) ForwardIfReady(queueNames ...string) error {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return errRedisDown
 	}
-	return tb.real.ForwardIfReady(qnames...)
+	return tb.real.ForwardIfReady(queueNames...)
 }
 
 func (tb *TestBroker) DeleteExpiredCompletedTasks(ctx context.Context, qname string, batchSize int) error {
@@ -150,13 +150,13 @@ func (tb *TestBroker) DeleteExpiredCompletedTasks(ctx context.Context, qname str
 	return tb.real.DeleteExpiredCompletedTasks(ctx, qname, batchSize)
 }
 
-func (tb *TestBroker) ListLeaseExpired(ctx context.Context, cutoff time.Time, qnames ...string) ([]*base.TaskMessage, error) {
+func (tb *TestBroker) ListLeaseExpired(ctx context.Context, cutoff time.Time, queueNames ...string) ([]*base.TaskMessage, error) {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return nil, errRedisDown
 	}
-	return tb.real.ListLeaseExpired(ctx, cutoff, qnames...)
+	return tb.real.ListLeaseExpired(ctx, cutoff, queueNames...)
 }
 
 func (tb *TestBroker) ExtendLease(ctx context.Context, qname string, ids ...string) (time.Time, error) {

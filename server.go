@@ -462,9 +462,9 @@ func NewServer(r RedisConnOpt, cfg Config) *Server {
 	if len(queues) == 0 {
 		queues = defaultQueueConfig
 	}
-	var qnames []string
+	var queueNames []string
 	for q := range queues {
-		qnames = append(qnames, q)
+		queueNames = append(queueNames, q)
 	}
 	shutdownTimeout := cfg.ShutdownTimeout
 	if shutdownTimeout == 0 {
@@ -519,7 +519,7 @@ func NewServer(r RedisConnOpt, cfg Config) *Server {
 	forwarder := newForwarder(forwarderParams{
 		logger:   logger,
 		broker:   rdb,
-		queues:   qnames,
+		queues:   queueNames,
 		interval: delayedTaskCheckInterval,
 	})
 	subscriber := newSubscriber(subscriberParams{
@@ -549,7 +549,7 @@ func NewServer(r RedisConnOpt, cfg Config) *Server {
 		broker:         rdb,
 		retryDelayFunc: delayFunc,
 		isFailureFunc:  isFailureFunc,
-		queues:         qnames,
+		queues:         queueNames,
 		interval:       1 * time.Minute,
 	})
 	healthchecker := newHealthChecker(healthcheckerParams{
@@ -575,14 +575,14 @@ func NewServer(r RedisConnOpt, cfg Config) *Server {
 	janitor := newJanitor(janitorParams{
 		logger:    logger,
 		broker:    rdb,
-		queues:    qnames,
+		queues:    queueNames,
 		interval:  janitorInterval,
 		batchSize: janitorBatchSize,
 	})
 	aggregator := newAggregator(aggregatorParams{
 		logger:          logger,
 		broker:          rdb,
-		queues:          qnames,
+		queues:          queueNames,
 		gracePeriod:     groupGracePeriod,
 		maxDelay:        cfg.GroupMaxDelay,
 		maxSize:         cfg.GroupMaxSize,

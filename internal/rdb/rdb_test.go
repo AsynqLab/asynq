@@ -321,7 +321,7 @@ func TestDequeue(t *testing.T) {
 
 	tests := []struct {
 		pending            map[string][]*base.TaskMessage
-		qnames             []string // list of queues to query
+		queueNames         []string // list of queues to query
 		wantMsg            *base.TaskMessage
 		wantExpirationTime time.Time
 		wantPending        map[string][]*base.TaskMessage
@@ -332,7 +332,7 @@ func TestDequeue(t *testing.T) {
 			pending: map[string][]*base.TaskMessage{
 				"default": {t1},
 			},
-			qnames:             []string{"default"},
+			queueNames:         []string{"default"},
 			wantMsg:            t1,
 			wantExpirationTime: now.Add(LeaseDuration),
 			wantPending: map[string][]*base.TaskMessage{
@@ -351,7 +351,7 @@ func TestDequeue(t *testing.T) {
 				"critical": {t2},
 				"low":      {t3},
 			},
-			qnames:             []string{"critical", "default", "low"},
+			queueNames:         []string{"critical", "default", "low"},
 			wantMsg:            t2,
 			wantExpirationTime: now.Add(LeaseDuration),
 			wantPending: map[string][]*base.TaskMessage{
@@ -376,7 +376,7 @@ func TestDequeue(t *testing.T) {
 				"critical": {},
 				"low":      {t3},
 			},
-			qnames:             []string{"critical", "default", "low"},
+			queueNames:         []string{"critical", "default", "low"},
 			wantMsg:            t1,
 			wantExpirationTime: now.Add(LeaseDuration),
 			wantPending: map[string][]*base.TaskMessage{
@@ -401,19 +401,19 @@ func TestDequeue(t *testing.T) {
 		h.FlushDB(t, r.client) // clean up db before each test case
 		h.SeedAllPendingQueues(t, r.client, tc.pending)
 
-		gotMsg, gotExpirationTime, err := r.Dequeue(tc.qnames...)
+		gotMsg, gotExpirationTime, err := r.Dequeue(tc.queueNames...)
 		if err != nil {
-			t.Errorf("(*RDB).Dequeue(%v) returned error %v", tc.qnames, err)
+			t.Errorf("(*RDB).Dequeue(%v) returned error %v", tc.queueNames, err)
 			continue
 		}
 		if !cmp.Equal(gotMsg, tc.wantMsg) {
 			t.Errorf("(*RDB).Dequeue(%v) returned message %v; want %v",
-				tc.qnames, gotMsg, tc.wantMsg)
+				tc.queueNames, gotMsg, tc.wantMsg)
 			continue
 		}
 		if gotExpirationTime != tc.wantExpirationTime {
 			t.Errorf("(*RDB).Dequeue(%v) returned expiration time %v, want %v",
-				tc.qnames, gotExpirationTime, tc.wantExpirationTime)
+				tc.queueNames, gotExpirationTime, tc.wantExpirationTime)
 		}
 
 		for queue, want := range tc.wantPending {
@@ -443,7 +443,7 @@ func TestDequeueError(t *testing.T) {
 
 	tests := []struct {
 		pending     map[string][]*base.TaskMessage
-		qnames      []string // list of queues to query
+		queueNames  []string // list of queues to query
 		wantErr     error
 		wantPending map[string][]*base.TaskMessage
 		wantActive  map[string][]*base.TaskMessage
@@ -453,8 +453,8 @@ func TestDequeueError(t *testing.T) {
 			pending: map[string][]*base.TaskMessage{
 				"default": {},
 			},
-			qnames:  []string{"default"},
-			wantErr: errors.ErrNoProcessableTask,
+			queueNames: []string{"default"},
+			wantErr:    errors.ErrNoProcessableTask,
 			wantPending: map[string][]*base.TaskMessage{
 				"default": {},
 			},
@@ -471,8 +471,8 @@ func TestDequeueError(t *testing.T) {
 				"critical": {},
 				"low":      {},
 			},
-			qnames:  []string{"critical", "default", "low"},
-			wantErr: errors.ErrNoProcessableTask,
+			queueNames: []string{"critical", "default", "low"},
+			wantErr:    errors.ErrNoProcessableTask,
 			wantPending: map[string][]*base.TaskMessage{
 				"default":  {},
 				"critical": {},
@@ -495,14 +495,14 @@ func TestDequeueError(t *testing.T) {
 		h.FlushDB(t, r.client) // clean up db before each test case
 		h.SeedAllPendingQueues(t, r.client, tc.pending)
 
-		gotMsg, _, gotErr := r.Dequeue(tc.qnames...)
+		gotMsg, _, gotErr := r.Dequeue(tc.queueNames...)
 		if !errors.Is(gotErr, tc.wantErr) {
 			t.Errorf("(*RDB).Dequeue(%v) returned error %v; want %v",
-				tc.qnames, gotErr, tc.wantErr)
+				tc.queueNames, gotErr, tc.wantErr)
 			continue
 		}
 		if gotMsg != nil {
-			t.Errorf("(*RDB).Dequeue(%v) returned message %v; want nil", tc.qnames, gotMsg)
+			t.Errorf("(*RDB).Dequeue(%v) returned message %v; want nil", tc.queueNames, gotMsg)
 			continue
 		}
 
@@ -550,7 +550,7 @@ func TestDequeueIgnoresPausedQueues(t *testing.T) {
 	tests := []struct {
 		paused      []string // list of paused queues
 		pending     map[string][]*base.TaskMessage
-		qnames      []string // list of queues to query
+		queueNames  []string // list of queues to query
 		wantMsg     *base.TaskMessage
 		wantErr     error
 		wantPending map[string][]*base.TaskMessage
@@ -562,9 +562,9 @@ func TestDequeueIgnoresPausedQueues(t *testing.T) {
 				"default":  {t1},
 				"critical": {t2},
 			},
-			qnames:  []string{"default", "critical"},
-			wantMsg: t2,
-			wantErr: nil,
+			queueNames: []string{"default", "critical"},
+			wantMsg:    t2,
+			wantErr:    nil,
 			wantPending: map[string][]*base.TaskMessage{
 				"default":  {t1},
 				"critical": {},
@@ -579,9 +579,9 @@ func TestDequeueIgnoresPausedQueues(t *testing.T) {
 			pending: map[string][]*base.TaskMessage{
 				"default": {t1},
 			},
-			qnames:  []string{"default"},
-			wantMsg: nil,
-			wantErr: errors.ErrNoProcessableTask,
+			queueNames: []string{"default"},
+			wantMsg:    nil,
+			wantErr:    errors.ErrNoProcessableTask,
 			wantPending: map[string][]*base.TaskMessage{
 				"default": {t1},
 			},
@@ -595,9 +595,9 @@ func TestDequeueIgnoresPausedQueues(t *testing.T) {
 				"default":  {t1},
 				"critical": {t2},
 			},
-			qnames:  []string{"default", "critical"},
-			wantMsg: nil,
-			wantErr: errors.ErrNoProcessableTask,
+			queueNames: []string{"default", "critical"},
+			wantMsg:    nil,
+			wantErr:    errors.ErrNoProcessableTask,
 			wantPending: map[string][]*base.TaskMessage{
 				"default":  {t1},
 				"critical": {t2},
@@ -618,10 +618,10 @@ func TestDequeueIgnoresPausedQueues(t *testing.T) {
 		}
 		h.SeedAllPendingQueues(t, r.client, tc.pending)
 
-		got, _, err := r.Dequeue(tc.qnames...)
+		got, _, err := r.Dequeue(tc.queueNames...)
 		if !cmp.Equal(got, tc.wantMsg) || !errors.Is(err, tc.wantErr) {
 			t.Errorf("Dequeue(%v) = %v, %v; want %v, %v",
-				tc.qnames, got, err, tc.wantMsg, tc.wantErr)
+				tc.queueNames, got, err, tc.wantMsg, tc.wantErr)
 			continue
 		}
 
@@ -2190,7 +2190,7 @@ func TestForwardIfReadyWithGroup(t *testing.T) {
 	tests := []struct {
 		scheduled     map[string][]base.Z
 		retry         map[string][]base.Z
-		qnames        []string
+		queueNames    []string
 		wantPending   map[string][]*base.TaskMessage
 		wantScheduled map[string][]*base.TaskMessage
 		wantRetry     map[string][]*base.TaskMessage
@@ -2206,7 +2206,7 @@ func TestForwardIfReadyWithGroup(t *testing.T) {
 			retry: map[string][]base.Z{
 				"default": {{Message: t3, Score: secondAgo.Unix()}},
 			},
-			qnames: []string{"default"},
+			queueNames: []string{"default"},
 			wantPending: map[string][]*base.TaskMessage{
 				"default": {t3},
 			},
@@ -2234,7 +2234,7 @@ func TestForwardIfReadyWithGroup(t *testing.T) {
 				"critical": {},
 				"low":      {{Message: t5, Score: secondAgo.Unix()}},
 			},
-			qnames: []string{"default", "critical", "low"},
+			queueNames: []string{"default", "critical", "low"},
 			wantPending: map[string][]*base.TaskMessage{
 				"default":  {},
 				"critical": {},
@@ -2269,9 +2269,9 @@ func TestForwardIfReadyWithGroup(t *testing.T) {
 		h.SeedAllScheduledQueues(t, r.client, tc.scheduled)
 		h.SeedAllRetryQueues(t, r.client, tc.retry)
 
-		err := r.ForwardIfReady(tc.qnames...)
+		err := r.ForwardIfReady(tc.queueNames...)
 		if err != nil {
-			t.Errorf("(*RDB).ForwardIfReady(%v) = %v, want nil", tc.qnames, err)
+			t.Errorf("(*RDB).ForwardIfReady(%v) = %v, want nil", tc.queueNames, err)
 			continue
 		}
 
@@ -2325,7 +2325,7 @@ func TestForwardIfReady(t *testing.T) {
 	tests := []struct {
 		scheduled     map[string][]base.Z
 		retry         map[string][]base.Z
-		qnames        []string
+		queueNames    []string
 		wantPending   map[string][]*base.TaskMessage
 		wantScheduled map[string][]*base.TaskMessage
 		wantRetry     map[string][]*base.TaskMessage
@@ -2340,7 +2340,7 @@ func TestForwardIfReady(t *testing.T) {
 			retry: map[string][]base.Z{
 				"default": {{Message: t3, Score: secondAgo.Unix()}},
 			},
-			qnames: []string{"default"},
+			queueNames: []string{"default"},
 			wantPending: map[string][]*base.TaskMessage{
 				"default": {t1, t2, t3},
 			},
@@ -2361,7 +2361,7 @@ func TestForwardIfReady(t *testing.T) {
 			retry: map[string][]base.Z{
 				"default": {{Message: t3, Score: secondAgo.Unix()}},
 			},
-			qnames: []string{"default"},
+			queueNames: []string{"default"},
 			wantPending: map[string][]*base.TaskMessage{
 				"default": {t2, t3},
 			},
@@ -2382,7 +2382,7 @@ func TestForwardIfReady(t *testing.T) {
 			retry: map[string][]base.Z{
 				"default": {{Message: t3, Score: hourFromNow.Unix()}},
 			},
-			qnames: []string{"default"},
+			queueNames: []string{"default"},
 			wantPending: map[string][]*base.TaskMessage{
 				"default": {},
 			},
@@ -2404,7 +2404,7 @@ func TestForwardIfReady(t *testing.T) {
 				"critical": {},
 				"low":      {{Message: t5, Score: secondAgo.Unix()}},
 			},
-			qnames: []string{"default", "critical", "low"},
+			queueNames: []string{"default", "critical", "low"},
 			wantPending: map[string][]*base.TaskMessage{
 				"default":  {t1},
 				"critical": {t4},
@@ -2431,9 +2431,9 @@ func TestForwardIfReady(t *testing.T) {
 		now := time.Now()
 		r.SetClock(timeutil.NewSimulatedClock(now))
 
-		err := r.ForwardIfReady(tc.qnames...)
+		err := r.ForwardIfReady(tc.queueNames...)
 		if err != nil {
-			t.Errorf("(*RDB).ForwardIfReady(%v) = %v, want nil", tc.qnames, err)
+			t.Errorf("(*RDB).ForwardIfReady(%v) = %v, want nil", tc.queueNames, err)
 			continue
 		}
 
@@ -2562,20 +2562,20 @@ func TestListLeaseExpired(t *testing.T) {
 	now := time.Now()
 
 	tests := []struct {
-		desc   string
-		lease  map[string][]base.Z
-		qnames []string
-		cutoff time.Time
-		want   []*base.TaskMessage
+		desc       string
+		lease      map[string][]base.Z
+		queueNames []string
+		cutoff     time.Time
+		want       []*base.TaskMessage
 	}{
 		{
 			desc: "with a single active task",
 			lease: map[string][]base.Z{
 				"default": {{Message: t1, Score: now.Add(-10 * time.Second).Unix()}},
 			},
-			qnames: []string{"default"},
-			cutoff: now,
-			want:   []*base.TaskMessage{t1},
+			queueNames: []string{"default"},
+			cutoff:     now,
+			want:       []*base.TaskMessage{t1},
 		},
 		{
 			desc: "with multiple active tasks, and one expired",
@@ -2588,9 +2588,9 @@ func TestListLeaseExpired(t *testing.T) {
 					{Message: t3, Score: now.Add(10 * time.Second).Unix()},
 				},
 			},
-			qnames: []string{"default", "critical"},
-			cutoff: now,
-			want:   []*base.TaskMessage{t1},
+			queueNames: []string{"default", "critical"},
+			cutoff:     now,
+			want:       []*base.TaskMessage{t1},
 		},
 		{
 			desc: "with multiple expired active tasks",
@@ -2603,9 +2603,9 @@ func TestListLeaseExpired(t *testing.T) {
 					{Message: t3, Score: now.Add(-30 * time.Second).Unix()},
 				},
 			},
-			qnames: []string{"default", "critical"},
-			cutoff: now,
-			want:   []*base.TaskMessage{t1, t3},
+			queueNames: []string{"default", "critical"},
+			cutoff:     now,
+			want:       []*base.TaskMessage{t1, t3},
 		},
 		{
 			desc: "with empty active queue",
@@ -2613,9 +2613,9 @@ func TestListLeaseExpired(t *testing.T) {
 				"default":  {},
 				"critical": {},
 			},
-			qnames: []string{"default", "critical"},
-			cutoff: now,
-			want:   []*base.TaskMessage{},
+			queueNames: []string{"default", "critical"},
+			cutoff:     now,
+			want:       []*base.TaskMessage{},
 		},
 	}
 
@@ -2627,7 +2627,7 @@ func TestListLeaseExpired(t *testing.T) {
 		h.FlushDB(t, r.client)
 		h.SeedAllLease(t, r.client, tc.lease)
 
-		got, err := r.ListLeaseExpired(ctx, tc.cutoff, tc.qnames...)
+		got, err := r.ListLeaseExpired(ctx, tc.cutoff, tc.queueNames...)
 		if err != nil {
 			t.Errorf("%s; ListLeaseExpired(%v) returned error: %v", tc.desc, tc.cutoff, err)
 			continue
