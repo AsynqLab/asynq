@@ -14,7 +14,7 @@ type syncer struct {
 
 	requestsCh <-chan *syncRequest
 
-	// channel to communicate back to the long running "syncer" goroutine.
+	// channel to communicate back to the long-running "syncer" goroutine.
 	done chan struct{}
 
 	// interval between sync operations.

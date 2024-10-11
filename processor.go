@@ -131,7 +131,7 @@ func (p *processor) stop() {
 	})
 }
 
-// NOTE: once shutdown, processor cannot be re-started.
+// NOTE: once shutdown, the processor cannot be re-started.
 func (p *processor) shutdown() {
 	p.stop()
 
@@ -176,7 +176,7 @@ func (p *processor) exec() {
 			// Queues are empty, this is a normal behavior.
 			// Sleep to avoid slamming redis and let scheduler move tasks into queues.
 			// Note: We are not using blocking pop operation and polling queues instead.
-			// This adds significant load to redis.
+			// This adds a significant load to redis.
 			time.Sleep(p.taskCheckInterval)
 			<-p.sema // release token
 			return
@@ -207,7 +207,7 @@ func (p *processor) exec() {
 			// check context before starting a worker goroutine.
 			select {
 			case <-ctx.Done():
-				// already canceled (e.g. deadline exceeded).
+				// already canceled (e.g., deadline exceeded).
 				p.handleFailedMessage(ctx, lease, msg, ctx.Err())
 				return
 			default:

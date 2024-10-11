@@ -41,10 +41,10 @@ type Server struct {
 	forwarder     *forwarder
 	processor     *processor
 	syncer        *syncer
-	heartbeater   *heartBeater
+	heartBeater   *heartBeater
 	subscriber    *subscriber
 	recoverer     *recoverer
-	healthchecker *healthchecker
+	healthChecker *healthChecker
 	janitor       *janitor
 	aggregator    *aggregator
 }
@@ -59,7 +59,7 @@ type serverStateValue int
 const (
 	// StateNew represents a new server. Server begins in
 	// this state and then transition to StatusActive when
-	// Start or Run is callled.
+	// Start or Run is called.
 	srvStateNew serverStateValue = iota
 
 	// StateActive indicates the server is up and active.
@@ -238,12 +238,12 @@ type Config struct {
 
 	// JanitorInterval specifies the average interval of janitor checks for expired completed tasks.
 	//
-	// If unset or zero, default interval of 8 seconds is used.
+	// If unset or zero, a default interval of 8 seconds is used.
 	JanitorInterval time.Duration
 
 	// JanitorBatchSize specifies the number of expired completed tasks to be deleted in one run.
 	//
-	// If unset or zero, default batch size of 100 is used.
+	// If unset or zero, the default batch size of 100 is used.
 	// Make sure to not put a big number as the batch size to prevent a long-running script.
 	JanitorBatchSize int
 }
@@ -503,7 +503,7 @@ func NewServer(r RedisConnOpt, cfg Config) *Server {
 		requestsCh: syncCh,
 		interval:   5 * time.Second,
 	})
-	heartbeater := newHeartbeater(heartbeaterParams{
+	heartBeater := newHeartbeater(heartbeaterParams{
 		logger:         logger,
 		broker:         redisDB,
 		interval:       5 * time.Second,
@@ -525,9 +525,9 @@ func NewServer(r RedisConnOpt, cfg Config) *Server {
 		interval: delayedTaskCheckInterval,
 	})
 	subscriber := newSubscriber(subscriberParams{
-		logger:       logger,
-		broker:       redisDB,
-		cancelations: cancels,
+		logger:        logger,
+		broker:        redisDB,
+		cancellations: cancels,
 	})
 	processor := newProcessor(processorParams{
 		logger:            logger,
@@ -554,7 +554,7 @@ func NewServer(r RedisConnOpt, cfg Config) *Server {
 		queues:         queueNames,
 		interval:       1 * time.Minute,
 	})
-	healthchecker := newHealthChecker(healthcheckerParams{
+	healthChecker := newHealthChecker(healthcheckerParams{
 		logger:          logger,
 		broker:          redisDB,
 		interval:        healthcheckInterval,
@@ -597,10 +597,10 @@ func NewServer(r RedisConnOpt, cfg Config) *Server {
 		forwarder:     forwarder,
 		processor:     processor,
 		syncer:        syncer,
-		heartbeater:   heartbeater,
+		heartBeater:   heartBeater,
 		subscriber:    subscriber,
 		recoverer:     recoverer,
-		healthchecker: healthchecker,
+		healthChecker: healthChecker,
 		janitor:       janitor,
 		aggregator:    aggregator,
 	}
@@ -671,8 +671,8 @@ func (srv *Server) Start(handler Handler) error {
 	}
 	srv.logger.Info("Starting processing")
 
-	srv.heartbeater.start(&srv.wg)
-	srv.healthchecker.start(&srv.wg)
+	srv.heartBeater.start(&srv.wg)
+	srv.healthChecker.start(&srv.wg)
 	srv.subscriber.start(&srv.wg)
 	srv.syncer.start(&srv.wg)
 	srv.recoverer.start(&srv.wg)
@@ -728,8 +728,8 @@ func (srv *Server) Shutdown() {
 	srv.subscriber.shutdown()
 	srv.janitor.shutdown()
 	srv.aggregator.shutdown()
-	srv.healthchecker.shutdown()
-	srv.heartbeater.shutdown()
+	srv.healthChecker.shutdown()
+	srv.heartBeater.shutdown()
 	srv.wg.Wait()
 
 	_ = srv.broker.Close()

@@ -685,7 +685,7 @@ func TestSchedulerEnqueueEventEncoding(t *testing.T) {
 	}
 }
 
-// Test for cancelations being accessed by multiple goroutines.
+// Test for cancellations being accessed by multiple goroutines.
 // Run with -race flag to check for data race.
 func TestCancelationsConcurrentAccess(t *testing.T) {
 	c := NewCancelations()

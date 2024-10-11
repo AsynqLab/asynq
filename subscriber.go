@@ -16,26 +16,26 @@ type subscriber struct {
 	// channel to communicate back to the long running "subscriber" goroutine.
 	done chan struct{}
 
-	// cancelations hold cancel functions for all active tasks.
-	cancelations *base.Cancelations
+	// cancellations hold cancel functions for all active tasks.
+	cancellations *base.Cancelations
 
 	// time to wait before retrying to connect to redis.
 	retryTimeout time.Duration
 }
 
 type subscriberParams struct {
-	logger       *log.Logger
-	broker       base.Broker
-	cancelations *base.Cancelations
+	logger        *log.Logger
+	broker        base.Broker
+	cancellations *base.Cancelations
 }
 
 func newSubscriber(params subscriberParams) *subscriber {
 	return &subscriber{
-		logger:       params.logger,
-		broker:       params.broker,
-		done:         make(chan struct{}),
-		cancelations: params.cancelations,
-		retryTimeout: 5 * time.Second,
+		logger:        params.logger,
+		broker:        params.broker,
+		done:          make(chan struct{}),
+		cancellations: params.cancellations,
+		retryTimeout:  5 * time.Second,
 	}
 }
 
@@ -76,7 +76,7 @@ func (s *subscriber) start(wg *sync.WaitGroup) {
 				s.logger.Debug("Subscriber done")
 				return
 			case msg := <-cancelCh:
-				cancel, ok := s.cancelations.Get(msg.Payload)
+				cancel, ok := s.cancellations.Get(msg.Payload)
 				if ok {
 					cancel()
 				}

@@ -51,7 +51,7 @@ func TestHealthChecker(t *testing.T) {
 }
 
 func TestHealthCheckerWhenRedisDown(t *testing.T) {
-	// Make sure that healthchecker goroutine doesn't panic
+	// Make sure that healthChecker goroutine doesn't panic
 	// if it cannot connect to redis.
 	defer func() {
 		if r := recover(); r != nil {

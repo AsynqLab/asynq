@@ -8,13 +8,13 @@ import (
 	"github.com/AsynqLab/asynq/internal/log"
 )
 
-// healthchecker is responsible for pinging broker periodically
+// healthChecker is responsible for pinging broker periodically
 // and call user provided HeathCheckFunc with the ping result.
-type healthchecker struct {
+type healthChecker struct {
 	logger *log.Logger
 	broker base.Broker
 
-	// channel to communicate back to the long running "healthchecker" goroutine.
+	// channel to communicate back to the long running "healthChecker" goroutine.
 	done chan struct{}
 
 	// interval between healthchecks.
@@ -31,8 +31,8 @@ type healthcheckerParams struct {
 	healthcheckFunc func(error)
 }
 
-func newHealthChecker(params healthcheckerParams) *healthchecker {
-	return &healthchecker{
+func newHealthChecker(params healthcheckerParams) *healthChecker {
+	return &healthChecker{
 		logger:          params.logger,
 		broker:          params.broker,
 		done:            make(chan struct{}),
@@ -41,17 +41,17 @@ func newHealthChecker(params healthcheckerParams) *healthchecker {
 	}
 }
 
-func (hc *healthchecker) shutdown() {
+func (hc *healthChecker) shutdown() {
 	if hc.healthcheckFunc == nil {
 		return
 	}
 
 	hc.logger.Debug("Healthchecker shutting down...")
-	// Signal the healthchecker goroutine to stop.
+	// Signal the healthChecker goroutine to stop.
 	hc.done <- struct{}{}
 }
 
-func (hc *healthchecker) start(wg *sync.WaitGroup) {
+func (hc *healthChecker) start(wg *sync.WaitGroup) {
 	if hc.healthcheckFunc == nil {
 		return
 	}

@@ -32,13 +32,13 @@ func TestSubscriber(t *testing.T) {
 			defer mu.Unlock()
 			called = true
 		}
-		cancelations := base.NewCancelations()
-		cancelations.Add(tc.registeredID, fakeCancelFunc)
+		cancellations := base.NewCancelations()
+		cancellations.Add(tc.registeredID, fakeCancelFunc)
 
 		subscriber := newSubscriber(subscriberParams{
-			logger:       testLogger,
-			broker:       rdbClient,
-			cancelations: cancelations,
+			logger:        testLogger,
+			broker:        rdbClient,
+			cancellations: cancellations,
 		})
 		var wg sync.WaitGroup
 		subscriber.start(&wg)
@@ -76,11 +76,11 @@ func TestSubscriberWithRedisDown(t *testing.T) {
 	defer r.Close()
 	testBroker := testbroker.NewTestBroker(r)
 
-	cancelations := base.NewCancelations()
+	cancellations := base.NewCancelations()
 	subscriber := newSubscriber(subscriberParams{
-		logger:       testLogger,
-		broker:       testBroker,
-		cancelations: cancelations,
+		logger:        testLogger,
+		broker:        testBroker,
+		cancellations: cancellations,
 	})
 	subscriber.retryTimeout = 1 * time.Second // set shorter retry timeout for testing purpose.
 
@@ -100,7 +100,7 @@ func TestSubscriberWithRedisDown(t *testing.T) {
 		mu     sync.Mutex
 		called bool
 	)
-	cancelations.Add(id, func() {
+	cancellations.Add(id, func() {
 		mu.Lock()
 		defer mu.Unlock()
 		called = true
