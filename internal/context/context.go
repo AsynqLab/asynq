@@ -12,7 +12,7 @@ type taskMetadata struct {
 	id         string
 	maxRetry   int
 	retryCount int
-	qname      string
+	queueName  string
 }
 
 // ctxKey type is unexported to prevent collisions with context keys defined in
@@ -29,7 +29,7 @@ func New(base context.Context, msg *base.TaskMessage, deadline time.Time) (conte
 		id:         msg.ID,
 		maxRetry:   msg.Retry,
 		retryCount: msg.Retried,
-		qname:      msg.Queue,
+		queueName:  msg.Queue,
 	}
 	ctx := context.WithValue(base, metadataCtxKey, metadata)
 	return context.WithDeadline(ctx, deadline)
@@ -73,11 +73,11 @@ func GetMaxRetry(ctx context.Context) (n int, ok bool) {
 
 // GetQueueName extracts queue name from a context, if any.
 //
-// Return value qname indicates which queue the task was pulled from.
-func GetQueueName(ctx context.Context) (qname string, ok bool) {
+// Return value queueName indicates which queue the task was pulled from.
+func GetQueueName(ctx context.Context) (queueName string, ok bool) {
 	metadata, ok := ctx.Value(metadataCtxKey).(taskMetadata)
 	if !ok {
 		return "", false
 	}
-	return metadata.qname, true
+	return metadata.queueName, true
 }

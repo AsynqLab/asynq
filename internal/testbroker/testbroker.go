@@ -141,13 +141,13 @@ func (tb *TestBroker) ForwardIfReady(queueNames ...string) error {
 	return tb.real.ForwardIfReady(queueNames...)
 }
 
-func (tb *TestBroker) DeleteExpiredCompletedTasks(ctx context.Context, qname string, batchSize int) error {
+func (tb *TestBroker) DeleteExpiredCompletedTasks(ctx context.Context, queueName string, batchSize int) error {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return errRedisDown
 	}
-	return tb.real.DeleteExpiredCompletedTasks(ctx, qname, batchSize)
+	return tb.real.DeleteExpiredCompletedTasks(ctx, queueName, batchSize)
 }
 
 func (tb *TestBroker) ListLeaseExpired(ctx context.Context, cutoff time.Time, queueNames ...string) ([]*base.TaskMessage, error) {
@@ -159,13 +159,13 @@ func (tb *TestBroker) ListLeaseExpired(ctx context.Context, cutoff time.Time, qu
 	return tb.real.ListLeaseExpired(ctx, cutoff, queueNames...)
 }
 
-func (tb *TestBroker) ExtendLease(ctx context.Context, qname string, ids ...string) (time.Time, error) {
+func (tb *TestBroker) ExtendLease(ctx context.Context, queueName string, ids ...string) (time.Time, error) {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return time.Time{}, errRedisDown
 	}
-	return tb.real.ExtendLease(ctx, qname, ids...)
+	return tb.real.ExtendLease(ctx, queueName, ids...)
 }
 
 func (tb *TestBroker) WriteServerState(info *base.ServerInfo, workers []*base.WorkerInfo, ttl time.Duration) error {
@@ -204,13 +204,13 @@ func (tb *TestBroker) PublishCancellation(id string) error {
 	return tb.real.PublishCancellation(id)
 }
 
-func (tb *TestBroker) WriteResult(ctx context.Context, qname, id string, data []byte) (int, error) {
+func (tb *TestBroker) WriteResult(ctx context.Context, queueName, id string, data []byte) (int, error) {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return 0, errRedisDown
 	}
-	return tb.real.WriteResult(ctx, qname, id, data)
+	return tb.real.WriteResult(ctx, queueName, id, data)
 }
 
 func (tb *TestBroker) Ping() error {
@@ -249,47 +249,47 @@ func (tb *TestBroker) AddToGroupUnique(ctx context.Context, msg *base.TaskMessag
 	return tb.real.AddToGroupUnique(ctx, msg, gname, ttl)
 }
 
-func (tb *TestBroker) ListGroups(qname string) ([]string, error) {
+func (tb *TestBroker) ListGroups(queueName string) ([]string, error) {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return nil, errRedisDown
 	}
-	return tb.real.ListGroups(qname)
+	return tb.real.ListGroups(queueName)
 }
 
-func (tb *TestBroker) AggregationCheck(qname, gname string, t time.Time, gracePeriod, maxDelay time.Duration, maxSize int) (aggregationSetID string, err error) {
+func (tb *TestBroker) AggregationCheck(queueName, gname string, t time.Time, gracePeriod, maxDelay time.Duration, maxSize int) (aggregationSetID string, err error) {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return "", errRedisDown
 	}
-	return tb.real.AggregationCheck(qname, gname, t, gracePeriod, maxDelay, maxSize)
+	return tb.real.AggregationCheck(queueName, gname, t, gracePeriod, maxDelay, maxSize)
 }
 
-func (tb *TestBroker) ReadAggregationSet(qname, gname, aggregationSetID string) ([]*base.TaskMessage, time.Time, error) {
+func (tb *TestBroker) ReadAggregationSet(queueName, gname, aggregationSetID string) ([]*base.TaskMessage, time.Time, error) {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return nil, time.Time{}, errRedisDown
 	}
-	return tb.real.ReadAggregationSet(qname, gname, aggregationSetID)
+	return tb.real.ReadAggregationSet(queueName, gname, aggregationSetID)
 }
 
-func (tb *TestBroker) DeleteAggregationSet(ctx context.Context, qname, gname, aggregationSetID string) error {
+func (tb *TestBroker) DeleteAggregationSet(ctx context.Context, queueName, gname, aggregationSetID string) error {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return errRedisDown
 	}
-	return tb.real.DeleteAggregationSet(ctx, qname, gname, aggregationSetID)
+	return tb.real.DeleteAggregationSet(ctx, queueName, gname, aggregationSetID)
 }
 
-func (tb *TestBroker) ReclaimStaleAggregationSets(ctx context.Context, qname string) error {
+func (tb *TestBroker) ReclaimStaleAggregationSets(ctx context.Context, queueName string) error {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return errRedisDown
 	}
-	return tb.real.ReclaimStaleAggregationSets(ctx, qname)
+	return tb.real.ReclaimStaleAggregationSets(ctx, queueName)
 }

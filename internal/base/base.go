@@ -86,87 +86,87 @@ func TaskStateFromString(s string) (TaskState, error) {
 	return 0, errors.E(errors.FailedPrecondition, fmt.Sprintf("%q is not supported task state", s))
 }
 
-// ValidateQueueName validates a given qname to be used as a queue name.
+// ValidateQueueName validates a given queueName to be used as a queue name.
 // Returns nil if valid, otherwise returns non-nil error.
-func ValidateQueueName(qname string) error {
-	if len(strings.TrimSpace(qname)) == 0 {
+func ValidateQueueName(queueName string) error {
+	if len(strings.TrimSpace(queueName)) == 0 {
 		return fmt.Errorf("queue name must contain one or more characters")
 	}
 	return nil
 }
 
 // QueueKeyPrefix returns a prefix for all keys in the given queue.
-func QueueKeyPrefix(qname string) string {
-	return fmt.Sprintf("asynq:{%s}:", qname)
+func QueueKeyPrefix(queueName string) string {
+	return fmt.Sprintf("asynq:{%s}:", queueName)
 }
 
 // TaskKeyPrefix returns a prefix for task key.
-func TaskKeyPrefix(qname string) string {
-	return fmt.Sprintf("%st:", QueueKeyPrefix(qname))
+func TaskKeyPrefix(queueName string) string {
+	return fmt.Sprintf("%st:", QueueKeyPrefix(queueName))
 }
 
 // TaskKey returns a redis key for the given task message.
-func TaskKey(qname, id string) string {
-	return fmt.Sprintf("%s%s", TaskKeyPrefix(qname), id)
+func TaskKey(queueName, id string) string {
+	return fmt.Sprintf("%s%s", TaskKeyPrefix(queueName), id)
 }
 
 // PendingKey returns a redis key for the given queue name.
-func PendingKey(qname string) string {
-	return fmt.Sprintf("%spending", QueueKeyPrefix(qname))
+func PendingKey(queueName string) string {
+	return fmt.Sprintf("%spending", QueueKeyPrefix(queueName))
 }
 
 // ActiveKey returns a redis key for the active tasks.
-func ActiveKey(qname string) string {
-	return fmt.Sprintf("%sactive", QueueKeyPrefix(qname))
+func ActiveKey(queueName string) string {
+	return fmt.Sprintf("%sactive", QueueKeyPrefix(queueName))
 }
 
 // ScheduledKey returns a redis key for the scheduled tasks.
-func ScheduledKey(qname string) string {
-	return fmt.Sprintf("%sscheduled", QueueKeyPrefix(qname))
+func ScheduledKey(queueName string) string {
+	return fmt.Sprintf("%sscheduled", QueueKeyPrefix(queueName))
 }
 
 // RetryKey returns a redis key for the retry tasks.
-func RetryKey(qname string) string {
-	return fmt.Sprintf("%sretry", QueueKeyPrefix(qname))
+func RetryKey(queueName string) string {
+	return fmt.Sprintf("%sretry", QueueKeyPrefix(queueName))
 }
 
 // ArchivedKey returns a redis key for the archived tasks.
-func ArchivedKey(qname string) string {
-	return fmt.Sprintf("%sarchived", QueueKeyPrefix(qname))
+func ArchivedKey(queueName string) string {
+	return fmt.Sprintf("%sarchived", QueueKeyPrefix(queueName))
 }
 
 // LeaseKey returns a redis key for the lease.
-func LeaseKey(qname string) string {
-	return fmt.Sprintf("%slease", QueueKeyPrefix(qname))
+func LeaseKey(queueName string) string {
+	return fmt.Sprintf("%slease", QueueKeyPrefix(queueName))
 }
 
-func CompletedKey(qname string) string {
-	return fmt.Sprintf("%scompleted", QueueKeyPrefix(qname))
+func CompletedKey(queueName string) string {
+	return fmt.Sprintf("%scompleted", QueueKeyPrefix(queueName))
 }
 
 // PausedKey returns a redis key to indicate that the given queue is paused.
-func PausedKey(qname string) string {
-	return fmt.Sprintf("%spaused", QueueKeyPrefix(qname))
+func PausedKey(queueName string) string {
+	return fmt.Sprintf("%spaused", QueueKeyPrefix(queueName))
 }
 
 // ProcessedTotalKey returns a redis key for total processed count for the given queue.
-func ProcessedTotalKey(qname string) string {
-	return fmt.Sprintf("%sprocessed", QueueKeyPrefix(qname))
+func ProcessedTotalKey(queueName string) string {
+	return fmt.Sprintf("%sprocessed", QueueKeyPrefix(queueName))
 }
 
 // FailedTotalKey returns a redis key for total failure count for the given queue.
-func FailedTotalKey(qname string) string {
-	return fmt.Sprintf("%sfailed", QueueKeyPrefix(qname))
+func FailedTotalKey(queueName string) string {
+	return fmt.Sprintf("%sfailed", QueueKeyPrefix(queueName))
 }
 
 // ProcessedKey returns a redis key for processed count for the given day for the queue.
-func ProcessedKey(qname string, t time.Time) string {
-	return fmt.Sprintf("%sprocessed:%s", QueueKeyPrefix(qname), t.UTC().Format("2006-01-02"))
+func ProcessedKey(queueName string, t time.Time) string {
+	return fmt.Sprintf("%sprocessed:%s", QueueKeyPrefix(queueName), t.UTC().Format("2006-01-02"))
 }
 
 // FailedKey returns a redis key for failure count for the given day for the queue.
-func FailedKey(qname string, t time.Time) string {
-	return fmt.Sprintf("%sfailed:%s", QueueKeyPrefix(qname), t.UTC().Format("2006-01-02"))
+func FailedKey(queueName string, t time.Time) string {
+	return fmt.Sprintf("%sfailed:%s", QueueKeyPrefix(queueName), t.UTC().Format("2006-01-02"))
 }
 
 // ServerInfoKey returns a redis key for process info.
@@ -190,38 +190,38 @@ func SchedulerHistoryKey(entryID string) string {
 }
 
 // UniqueKey returns a redis key with the given type, payload, and queue name.
-func UniqueKey(qname, tasktype string, payload []byte) string {
+func UniqueKey(queueName, tasktype string, payload []byte) string {
 	if payload == nil {
-		return fmt.Sprintf("%sunique:%s:", QueueKeyPrefix(qname), tasktype)
+		return fmt.Sprintf("%sunique:%s:", QueueKeyPrefix(queueName), tasktype)
 	}
 	checksum := md5.Sum(payload)
-	return fmt.Sprintf("%sunique:%s:%s", QueueKeyPrefix(qname), tasktype, hex.EncodeToString(checksum[:]))
+	return fmt.Sprintf("%sunique:%s:%s", QueueKeyPrefix(queueName), tasktype, hex.EncodeToString(checksum[:]))
 }
 
 // GroupKeyPrefix returns a prefix for group key.
-func GroupKeyPrefix(qname string) string {
-	return fmt.Sprintf("%sg:", QueueKeyPrefix(qname))
+func GroupKeyPrefix(queueName string) string {
+	return fmt.Sprintf("%sg:", QueueKeyPrefix(queueName))
 }
 
 // GroupKey returns a redis key used to group tasks belong in the same group.
-func GroupKey(qname, gkey string) string {
-	return fmt.Sprintf("%s%s", GroupKeyPrefix(qname), gkey)
+func GroupKey(queueName, gkey string) string {
+	return fmt.Sprintf("%s%s", GroupKeyPrefix(queueName), gkey)
 }
 
 // AggregationSetKey returns a redis key used for an aggregation set.
-func AggregationSetKey(qname, gname, setID string) string {
-	return fmt.Sprintf("%s:%s", GroupKey(qname, gname), setID)
+func AggregationSetKey(queueName, gname, setID string) string {
+	return fmt.Sprintf("%s:%s", GroupKey(queueName, gname), setID)
 }
 
 // AllGroups return a redis key used to store all group keys used in a given queue.
-func AllGroups(qname string) string {
-	return fmt.Sprintf("%sgroups", QueueKeyPrefix(qname))
+func AllGroups(queueName string) string {
+	return fmt.Sprintf("%sgroups", QueueKeyPrefix(queueName))
 }
 
 // AllAggregationSets returns a redis key used to store all aggregation sets (set of tasks staged to be aggregated)
 // in a given queue.
-func AllAggregationSets(qname string) string {
-	return fmt.Sprintf("%saggregation_sets", QueueKeyPrefix(qname))
+func AllAggregationSets(queueName string) string {
+	return fmt.Sprintf("%saggregation_sets", QueueKeyPrefix(queueName))
 }
 
 // TaskMessage is the internal representation of a task with additional metadata fields.
@@ -689,22 +689,22 @@ type Broker interface {
 	*/
 	AddToGroup(ctx context.Context, msg *TaskMessage, gname string) error
 	AddToGroupUnique(ctx context.Context, msg *TaskMessage, groupKey string, ttl time.Duration) error
-	ListGroups(qname string) ([]string, error)
-	AggregationCheck(qname, gname string, t time.Time, gracePeriod, maxDelay time.Duration, maxSize int) (aggregationSetID string, err error)
-	ReadAggregationSet(qname, gname, aggregationSetID string) ([]*TaskMessage, time.Time, error)
-	DeleteAggregationSet(ctx context.Context, qname, gname, aggregationSetID string) error
-	ReclaimStaleAggregationSets(ctx context.Context, qname string) error
+	ListGroups(queueName string) ([]string, error)
+	AggregationCheck(queueName, gname string, t time.Time, gracePeriod, maxDelay time.Duration, maxSize int) (aggregationSetID string, err error)
+	ReadAggregationSet(queueName, gname, aggregationSetID string) ([]*TaskMessage, time.Time, error)
+	DeleteAggregationSet(ctx context.Context, queueName, gname, aggregationSetID string) error
+	ReclaimStaleAggregationSets(ctx context.Context, queueName string) error
 
 	/*
 		Task retention related method
 	*/
-	DeleteExpiredCompletedTasks(ctx context.Context, qname string, batchSize int) error
+	DeleteExpiredCompletedTasks(ctx context.Context, queueName string, batchSize int) error
 
 	/*
 		Lease related methods
 	*/
 	ListLeaseExpired(ctx context.Context, cutoff time.Time, queueNames ...string) ([]*TaskMessage, error)
-	ExtendLease(ctx context.Context, qname string, ids ...string) (time.Time, error)
+	ExtendLease(ctx context.Context, queueName string, ids ...string) (time.Time, error)
 
 	/*
 		State snapshot related methods
@@ -718,5 +718,5 @@ type Broker interface {
 	CancellationPubSub() (*redis.PubSub, error) // TODO: Need to decouple from redis to support other brokers
 	PublishCancellation(id string) error
 
-	WriteResult(ctx context.Context, qname, id string, data []byte) (n int, err error)
+	WriteResult(ctx context.Context, queueName, id string, data []byte) (n int, err error)
 }

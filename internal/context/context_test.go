@@ -168,12 +168,12 @@ func TestGetTaskMetadataFromContext(t *testing.T) {
 			t.Errorf("%s: GetMaxRetry(ctx) returned n == %d want %d", tc.desc, maxRetry, tc.msg.Retry)
 		}
 
-		qname, ok := GetQueueName(ctx)
+		queueName, ok := GetQueueName(ctx)
 		if !ok {
 			t.Errorf("%s: GetQueueName(ctx) returned ok == false", tc.desc)
 		}
-		if ok && qname != tc.msg.Queue {
-			t.Errorf("%s: GetQueueName(ctx) returned qname == %q, want %q", tc.desc, qname, tc.msg.Queue)
+		if ok && queueName != tc.msg.Queue {
+			t.Errorf("%s: GetQueueName(ctx) returned queueName == %q, want %q", tc.desc, queueName, tc.msg.Queue)
 		}
 	}
 }

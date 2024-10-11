@@ -611,8 +611,8 @@ func TestDequeueIgnoresPausedQueues(t *testing.T) {
 
 	for _, tc := range tests {
 		h.FlushDB(t, r.client) // clean up db before each test case
-		for _, qname := range tc.paused {
-			if err := r.Pause(qname); err != nil {
+		for _, queueName := range tc.paused {
+			if err := r.Pause(queueName); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -1142,22 +1142,22 @@ func TestRequeue(t *testing.T) {
 			continue
 		}
 
-		for qname, want := range tc.wantPending {
-			gotPending := h.GetPendingMessages(t, r.client, qname)
+		for queueName, want := range tc.wantPending {
+			gotPending := h.GetPendingMessages(t, r.client, queueName)
 			if diff := cmp.Diff(want, gotPending, h.SortMsgOpt); diff != "" {
-				t.Errorf("mismatch found in %q; (-want, +got)\n%s", base.PendingKey(qname), diff)
+				t.Errorf("mismatch found in %q; (-want, +got)\n%s", base.PendingKey(queueName), diff)
 			}
 		}
-		for qname, want := range tc.wantActive {
-			gotActive := h.GetActiveMessages(t, r.client, qname)
+		for queueName, want := range tc.wantActive {
+			gotActive := h.GetActiveMessages(t, r.client, queueName)
 			if diff := cmp.Diff(want, gotActive, h.SortMsgOpt); diff != "" {
-				t.Errorf("mismatch found in %q: (-want, +got):\n%s", base.ActiveKey(qname), diff)
+				t.Errorf("mismatch found in %q: (-want, +got):\n%s", base.ActiveKey(queueName), diff)
 			}
 		}
-		for qname, want := range tc.wantLease {
-			gotLease := h.GetLeaseEntries(t, r.client, qname)
+		for queueName, want := range tc.wantLease {
+			gotLease := h.GetLeaseEntries(t, r.client, queueName)
 			if diff := cmp.Diff(want, gotLease, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("mismatch found in %q: (-want, +got):\n%s", base.LeaseKey(qname), diff)
+				t.Errorf("mismatch found in %q: (-want, +got):\n%s", base.LeaseKey(queueName), diff)
 			}
 		}
 	}
@@ -2275,10 +2275,10 @@ func TestForwardIfReadyWithGroup(t *testing.T) {
 			continue
 		}
 
-		for qname, want := range tc.wantPending {
-			gotPending := h.GetPendingMessages(t, r.client, qname)
+		for queueName, want := range tc.wantPending {
+			gotPending := h.GetPendingMessages(t, r.client, queueName)
 			if diff := cmp.Diff(want, gotPending, h.SortMsgOpt); diff != "" {
-				t.Errorf("mismatch found in %q; (-want, +got)\n%s", base.PendingKey(qname), diff)
+				t.Errorf("mismatch found in %q; (-want, +got)\n%s", base.PendingKey(queueName), diff)
 			}
 			// Make sure "pending_since" field is set
 			for _, msg := range gotPending {
@@ -2288,23 +2288,23 @@ func TestForwardIfReadyWithGroup(t *testing.T) {
 				}
 			}
 		}
-		for qname, want := range tc.wantScheduled {
-			gotScheduled := h.GetScheduledMessages(t, r.client, qname)
+		for queueName, want := range tc.wantScheduled {
+			gotScheduled := h.GetScheduledMessages(t, r.client, queueName)
 			if diff := cmp.Diff(want, gotScheduled, h.SortMsgOpt); diff != "" {
-				t.Errorf("mismatch found in %q; (-want, +got)\n%s", base.ScheduledKey(qname), diff)
+				t.Errorf("mismatch found in %q; (-want, +got)\n%s", base.ScheduledKey(queueName), diff)
 			}
 		}
-		for qname, want := range tc.wantRetry {
-			gotRetry := h.GetRetryMessages(t, r.client, qname)
+		for queueName, want := range tc.wantRetry {
+			gotRetry := h.GetRetryMessages(t, r.client, queueName)
 			if diff := cmp.Diff(want, gotRetry, h.SortMsgOpt); diff != "" {
-				t.Errorf("mismatch found in %q; (-want, +got)\n%s", base.RetryKey(qname), diff)
+				t.Errorf("mismatch found in %q; (-want, +got)\n%s", base.RetryKey(queueName), diff)
 			}
 		}
-		for qname, groups := range tc.wantGroup {
+		for queueName, groups := range tc.wantGroup {
 			for groupKey, wantGroup := range groups {
-				gotGroup := h.GetGroupEntries(t, r.client, qname, groupKey)
+				gotGroup := h.GetGroupEntries(t, r.client, queueName, groupKey)
 				if diff := cmp.Diff(wantGroup, gotGroup, h.SortZSetEntryOpt); diff != "" {
-					t.Errorf("mismatch found in %q; (-want, +got)\n%s", base.GroupKey(qname, groupKey), diff)
+					t.Errorf("mismatch found in %q; (-want, +got)\n%s", base.GroupKey(queueName, groupKey), diff)
 				}
 			}
 		}
@@ -2437,10 +2437,10 @@ func TestForwardIfReady(t *testing.T) {
 			continue
 		}
 
-		for qname, want := range tc.wantPending {
-			gotPending := h.GetPendingMessages(t, r.client, qname)
+		for queueName, want := range tc.wantPending {
+			gotPending := h.GetPendingMessages(t, r.client, queueName)
 			if diff := cmp.Diff(want, gotPending, h.SortMsgOpt); diff != "" {
-				t.Errorf("mismatch found in %q; (-want, +got)\n%s", base.PendingKey(qname), diff)
+				t.Errorf("mismatch found in %q; (-want, +got)\n%s", base.PendingKey(queueName), diff)
 			}
 			// Make sure "pending_since" field is set
 			for _, msg := range gotPending {
@@ -2450,23 +2450,23 @@ func TestForwardIfReady(t *testing.T) {
 				}
 			}
 		}
-		for qname, want := range tc.wantScheduled {
-			gotScheduled := h.GetScheduledMessages(t, r.client, qname)
+		for queueName, want := range tc.wantScheduled {
+			gotScheduled := h.GetScheduledMessages(t, r.client, queueName)
 			if diff := cmp.Diff(want, gotScheduled, h.SortMsgOpt); diff != "" {
-				t.Errorf("mismatch found in %q; (-want, +got)\n%s", base.ScheduledKey(qname), diff)
+				t.Errorf("mismatch found in %q; (-want, +got)\n%s", base.ScheduledKey(queueName), diff)
 			}
 		}
-		for qname, want := range tc.wantRetry {
-			gotRetry := h.GetRetryMessages(t, r.client, qname)
+		for queueName, want := range tc.wantRetry {
+			gotRetry := h.GetRetryMessages(t, r.client, queueName)
 			if diff := cmp.Diff(want, gotRetry, h.SortMsgOpt); diff != "" {
-				t.Errorf("mismatch found in %q; (-want, +got)\n%s", base.RetryKey(qname), diff)
+				t.Errorf("mismatch found in %q; (-want, +got)\n%s", base.RetryKey(queueName), diff)
 			}
 		}
 	}
 }
 
-func newCompletedTask(qname, typename string, payload []byte, completedAt time.Time) *base.TaskMessage {
-	msg := h.NewTaskMessageWithQueue(typename, payload, qname)
+func newCompletedTask(queueName, typename string, payload []byte, completedAt time.Time) *base.TaskMessage {
+	msg := h.NewTaskMessageWithQueue(typename, payload, queueName)
 	msg.CompletedAt = completedAt.Unix()
 	return msg
 }
@@ -2489,7 +2489,7 @@ func TestDeleteExpiredCompletedTasks(t *testing.T) {
 	tests := []struct {
 		desc          string
 		completed     map[string][]base.Z
-		qname         string
+		queueName     string
 		wantCompleted map[string][]base.Z
 	}{
 		{
@@ -2501,7 +2501,7 @@ func TestDeleteExpiredCompletedTasks(t *testing.T) {
 					{Message: t3, Score: now.Unix()},
 				},
 			},
-			qname: "default",
+			queueName: "default",
 			wantCompleted: map[string][]base.Z{
 				"default": {
 					{Message: t2, Score: hourFromNow.Unix()},
@@ -2521,7 +2521,7 @@ func TestDeleteExpiredCompletedTasks(t *testing.T) {
 					{Message: t5, Score: now.Unix()},
 				},
 			},
-			qname: "critical",
+			queueName: "critical",
 			wantCompleted: map[string][]base.Z{
 				"default": {
 					{Message: t2, Score: secondAgo.Unix()},
@@ -2540,15 +2540,15 @@ func TestDeleteExpiredCompletedTasks(t *testing.T) {
 		h.FlushDB(t, r.client)
 		h.SeedAllCompletedQueues(t, r.client, tc.completed)
 
-		if err := r.DeleteExpiredCompletedTasks(ctx, tc.qname, 100); err != nil {
-			t.Errorf("DeleteExpiredCompletedTasks(%q, 100) failed: %v", tc.qname, err)
+		if err := r.DeleteExpiredCompletedTasks(ctx, tc.queueName, 100); err != nil {
+			t.Errorf("DeleteExpiredCompletedTasks(%q, 100) failed: %v", tc.queueName, err)
 			continue
 		}
 
-		for qname, want := range tc.wantCompleted {
-			got := h.GetCompletedEntries(t, r.client, qname)
+		for queueName, want := range tc.wantCompleted {
+			got := h.GetCompletedEntries(t, r.client, queueName)
 			if diff := cmp.Diff(want, got, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("%s: diff found in %q completed set: want=%v, got=%v\n%s", tc.desc, qname, want, got, diff)
+				t.Errorf("%s: diff found in %q completed set: want=%v, got=%v\n%s", tc.desc, queueName, want, got, diff)
 			}
 		}
 	}
@@ -2654,7 +2654,7 @@ func TestExtendLease(t *testing.T) {
 	tests := []struct {
 		desc               string
 		lease              map[string][]base.Z
-		qname              string
+		queueName          string
 		ids                []string
 		wantExpirationTime time.Time
 		wantLease          map[string][]base.Z
@@ -2665,7 +2665,7 @@ func TestExtendLease(t *testing.T) {
 				"default":  {{Message: t1, Score: now.Add(10 * time.Second).Unix()}},
 				"critical": {{Message: t3, Score: now.Add(10 * time.Second).Unix()}},
 			},
-			qname:              "default",
+			queueName:          "default",
 			ids:                []string{t1.ID},
 			wantExpirationTime: now.Add(LeaseDuration),
 			wantLease: map[string][]base.Z{
@@ -2679,7 +2679,7 @@ func TestExtendLease(t *testing.T) {
 				"default":  {{Message: t1, Score: now.Add(10 * time.Second).Unix()}, {Message: t2, Score: now.Add(10 * time.Second).Unix()}},
 				"critical": {{Message: t3, Score: now.Add(10 * time.Second).Unix()}},
 			},
-			qname:              "default",
+			queueName:          "default",
 			ids:                []string{t1.ID, t2.ID},
 			wantExpirationTime: now.Add(LeaseDuration),
 			wantLease: map[string][]base.Z{
@@ -2697,7 +2697,7 @@ func TestExtendLease(t *testing.T) {
 				},
 				"critical": {{Message: t3, Score: now.Add(10 * time.Second).Unix()}},
 			},
-			qname:              "default",
+			queueName:          "default",
 			ids:                []string{t2.ID, t4.ID},
 			wantExpirationTime: now.Add(LeaseDuration),
 			wantLease: map[string][]base.Z{
@@ -2716,7 +2716,7 @@ func TestExtendLease(t *testing.T) {
 					{Message: t1, Score: now.Add(10 * time.Second).Unix()},
 				},
 			},
-			qname:              "default",
+			queueName:          "default",
 			ids:                []string{t1.ID, t2.ID},
 			wantExpirationTime: now.Add(LeaseDuration),
 			wantLease: map[string][]base.Z{
@@ -2733,18 +2733,18 @@ func TestExtendLease(t *testing.T) {
 		h.FlushDB(t, r.client)
 		h.SeedAllLease(t, r.client, tc.lease)
 
-		gotExpirationTime, err := r.ExtendLease(ctx, tc.qname, tc.ids...)
+		gotExpirationTime, err := r.ExtendLease(ctx, tc.queueName, tc.ids...)
 		if err != nil {
-			t.Fatalf("%s: ExtendLease(%q, %v) returned error: %v", tc.desc, tc.qname, tc.ids, err)
+			t.Fatalf("%s: ExtendLease(%q, %v) returned error: %v", tc.desc, tc.queueName, tc.ids, err)
 		}
 		if gotExpirationTime != tc.wantExpirationTime {
-			t.Errorf("%s: ExtendLease(%q, %v) returned expirationTime %v, want %v", tc.desc, tc.qname, tc.ids, gotExpirationTime, tc.wantExpirationTime)
+			t.Errorf("%s: ExtendLease(%q, %v) returned expirationTime %v, want %v", tc.desc, tc.queueName, tc.ids, gotExpirationTime, tc.wantExpirationTime)
 		}
 
-		for qname, want := range tc.wantLease {
-			gotLease := h.GetLeaseEntries(t, r.client, qname)
+		for queueName, want := range tc.wantLease {
+			gotLease := h.GetLeaseEntries(t, r.client, queueName)
 			if diff := cmp.Diff(want, gotLease, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("%s: mismatch found in %q: (-want,+got):\n%s", tc.desc, base.LeaseKey(qname), diff)
+				t.Errorf("%s: mismatch found in %q: (-want,+got):\n%s", tc.desc, base.LeaseKey(queueName), diff)
 			}
 		}
 	}
@@ -3072,14 +3072,14 @@ func TestWriteResult(t *testing.T) {
 	defer r.Close()
 
 	tests := []struct {
-		qname  string
-		taskID string
-		data   []byte
+		queueName string
+		taskID    string
+		data      []byte
 	}{
 		{
-			qname:  "default",
-			taskID: uuid.NewString(),
-			data:   []byte("hello"),
+			queueName: "default",
+			taskID:    uuid.NewString(),
+			data:      []byte("hello"),
 		},
 	}
 
@@ -3088,7 +3088,7 @@ func TestWriteResult(t *testing.T) {
 
 		h.FlushDB(t, r.client)
 
-		n, err := r.WriteResult(ctx, tc.qname, tc.taskID, tc.data)
+		n, err := r.WriteResult(ctx, tc.queueName, tc.taskID, tc.data)
 		if err != nil {
 			t.Errorf("WriteResult failed: %v", err)
 			continue
@@ -3097,7 +3097,7 @@ func TestWriteResult(t *testing.T) {
 			t.Errorf("WriteResult returned %d, want %d", n, len(tc.data))
 		}
 
-		taskKey := base.TaskKey(tc.qname, tc.taskID)
+		taskKey := base.TaskKey(tc.queueName, tc.taskID)
 		got := r.client.HGet(context.Background(), taskKey, "result").Val()
 		if got != string(tc.data) {
 			t.Errorf("`result` field under %q key is set to %q, want %q", taskKey, got, string(tc.data))
@@ -3127,7 +3127,7 @@ func TestAggregationCheck(t *testing.T) {
 		allGroups map[string][]string
 
 		// args
-		qname       string
+		queueName   string
 		gname       string
 		gracePeriod time.Duration
 		maxDelay    time.Duration
@@ -3148,7 +3148,7 @@ func TestAggregationCheck(t *testing.T) {
 			allGroups: map[string][]string{
 				base.AllGroups("default"): {},
 			},
-			qname:              "default",
+			queueName:          "default",
 			gname:              "mygroup",
 			gracePeriod:        1 * time.Minute,
 			maxDelay:           10 * time.Minute,
@@ -3181,7 +3181,7 @@ func TestAggregationCheck(t *testing.T) {
 			allGroups: map[string][]string{
 				base.AllGroups("default"): {"mygroup"},
 			},
-			qname:              "default",
+			queueName:          "default",
 			gname:              "mygroup",
 			gracePeriod:        1 * time.Minute,
 			maxDelay:           10 * time.Minute,
@@ -3214,7 +3214,7 @@ func TestAggregationCheck(t *testing.T) {
 			allGroups: map[string][]string{
 				base.AllGroups("default"): {"mygroup"},
 			},
-			qname:              "default",
+			queueName:          "default",
 			gname:              "mygroup",
 			gracePeriod:        2 * time.Minute,
 			maxDelay:           10 * time.Minute,
@@ -3246,7 +3246,7 @@ func TestAggregationCheck(t *testing.T) {
 			allGroups: map[string][]string{
 				base.AllGroups("default"): {"mygroup"},
 			},
-			qname:              "default",
+			queueName:          "default",
 			gname:              "mygroup",
 			gracePeriod:        1 * time.Minute,
 			maxDelay:           10 * time.Minute,
@@ -3279,7 +3279,7 @@ func TestAggregationCheck(t *testing.T) {
 			allGroups: map[string][]string{
 				base.AllGroups("default"): {"mygroup"},
 			},
-			qname:              "default",
+			queueName:          "default",
 			gname:              "mygroup",
 			gracePeriod:        2 * time.Minute,
 			maxDelay:           10 * time.Minute,
@@ -3312,7 +3312,7 @@ func TestAggregationCheck(t *testing.T) {
 			allGroups: map[string][]string{
 				base.AllGroups("default"): {"mygroup"},
 			},
-			qname:              "default",
+			queueName:          "default",
 			gname:              "mygroup",
 			gracePeriod:        1 * time.Minute,
 			maxDelay:           30 * time.Minute,
@@ -3351,7 +3351,7 @@ func TestAggregationCheck(t *testing.T) {
 			allGroups: map[string][]string{
 				base.AllGroups("default"): {"mygroup"},
 			},
-			qname:              "default",
+			queueName:          "default",
 			gname:              "mygroup",
 			gracePeriod:        30 * time.Second,
 			maxDelay:           30 * time.Minute,
@@ -3384,7 +3384,7 @@ func TestAggregationCheck(t *testing.T) {
 			allGroups: map[string][]string{
 				base.AllGroups("default"): {"mygroup"},
 			},
-			qname:              "default",
+			queueName:          "default",
 			gname:              "mygroup",
 			gracePeriod:        1 * time.Minute,
 			maxDelay:           0, // maxDelay=0 indicates no limit
@@ -3412,7 +3412,7 @@ func TestAggregationCheck(t *testing.T) {
 			h.SeedRedisZSets(t, r.client, tc.groups)
 			h.SeedRedisSets(t, r.client, tc.allGroups)
 
-			aggregationSetID, err := r.AggregationCheck(tc.qname, tc.gname, now, tc.gracePeriod, tc.maxDelay, tc.maxSize)
+			aggregationSetID, err := r.AggregationCheck(tc.queueName, tc.gname, now, tc.gracePeriod, tc.maxDelay, tc.maxSize)
 			if err != nil {
 				t.Fatalf("AggregationCheck returned error: %v", err)
 			}
@@ -3425,7 +3425,7 @@ func TestAggregationCheck(t *testing.T) {
 			}
 
 			if tc.shouldCreateSet {
-				msgs, deadline, err := r.ReadAggregationSet(tc.qname, tc.gname, aggregationSetID)
+				msgs, deadline, err := r.ReadAggregationSet(tc.queueName, tc.gname, aggregationSetID)
 				if err != nil {
 					t.Fatalf("Failed to read aggregation set %q: %v", aggregationSetID, err)
 				}
@@ -3441,18 +3441,18 @@ func TestAggregationCheck(t *testing.T) {
 			h.AssertRedisZSets(t, r.client, tc.wantGroups)
 
 			if tc.shouldClearGroup {
-				if key := base.GroupKey(tc.qname, tc.gname); r.client.Exists(ctx, key).Val() != 0 {
+				if key := base.GroupKey(tc.queueName, tc.gname); r.client.Exists(ctx, key).Val() != 0 {
 					t.Errorf("group key %q still exists", key)
 				}
-				if r.client.SIsMember(ctx, base.AllGroups(tc.qname), tc.gname).Val() {
-					t.Errorf("all-group set %q still contains the group name %q", base.AllGroups(tc.qname), tc.gname)
+				if r.client.SIsMember(ctx, base.AllGroups(tc.queueName), tc.gname).Val() {
+					t.Errorf("all-group set %q still contains the group name %q", base.AllGroups(tc.queueName), tc.gname)
 				}
 			} else {
-				if key := base.GroupKey(tc.qname, tc.gname); r.client.Exists(ctx, key).Val() == 0 {
+				if key := base.GroupKey(tc.queueName, tc.gname); r.client.Exists(ctx, key).Val() == 0 {
 					t.Errorf("group key %q does not exists", key)
 				}
-				if !r.client.SIsMember(ctx, base.AllGroups(tc.qname), tc.gname).Val() {
-					t.Errorf("all-group set %q doesn't contains the group name %q", base.AllGroups(tc.qname), tc.gname)
+				if !r.client.SIsMember(ctx, base.AllGroups(tc.queueName), tc.gname).Val() {
+					t.Errorf("all-group set %q doesn't contains the group name %q", base.AllGroups(tc.queueName), tc.gname)
 				}
 			}
 		})
@@ -3478,10 +3478,10 @@ func TestDeleteAggregationSet(t *testing.T) {
 		allAggregationSets map[string][]redis.Z
 
 		// args
-		ctx   context.Context
-		qname string
-		gname string
-		setID string
+		ctx       context.Context
+		queueName string
+		gname     string
+		setID     string
 
 		// expectations
 		wantDeletedKeys        []string // redis key to check for non existence
@@ -3507,10 +3507,10 @@ func TestDeleteAggregationSet(t *testing.T) {
 					{Member: base.AggregationSetKey("default", "mygroup", setID), Score: float64(now.Add(aggregationTimeout).Unix())},
 				},
 			},
-			ctx:   context.Background(),
-			qname: "default",
-			gname: "mygroup",
-			setID: setID,
+			ctx:       context.Background(),
+			queueName: "default",
+			gname:     "mygroup",
+			setID:     setID,
 			wantDeletedKeys: []string{
 				base.AggregationSetKey("default", "mygroup", setID),
 				base.TaskKey(m1.Queue, m1.ID),
@@ -3544,10 +3544,10 @@ func TestDeleteAggregationSet(t *testing.T) {
 					{Member: base.AggregationSetKey("default", "mygroup", otherSetID), Score: float64(now.Add(aggregationTimeout).Unix())},
 				},
 			},
-			ctx:   context.Background(),
-			qname: "default",
-			gname: "mygroup",
-			setID: setID,
+			ctx:       context.Background(),
+			queueName: "default",
+			gname:     "mygroup",
+			setID:     setID,
 			wantDeletedKeys: []string{
 				base.AggregationSetKey("default", "mygroup", setID),
 				base.TaskKey(m1.Queue, m1.ID),
@@ -3573,7 +3573,7 @@ func TestDeleteAggregationSet(t *testing.T) {
 			h.SeedRedisZSets(t, r.client, tc.aggregationSets)
 			h.SeedRedisZSets(t, r.client, tc.allAggregationSets)
 
-			if err := r.DeleteAggregationSet(tc.ctx, tc.qname, tc.gname, tc.setID); err != nil {
+			if err := r.DeleteAggregationSet(tc.ctx, tc.queueName, tc.gname, tc.setID); err != nil {
 				t.Fatalf("DeleteAggregationSet returned error: %v", err)
 			}
 
@@ -3607,10 +3607,10 @@ func TestDeleteAggregationSetError(t *testing.T) {
 		allAggregationSets map[string][]redis.Z
 
 		// args
-		ctx   context.Context
-		qname string
-		gname string
-		setID string
+		ctx       context.Context
+		queueName string
+		gname     string
+		setID     string
 
 		// expectations
 		wantAggregationSets    map[string][]redis.Z
@@ -3635,10 +3635,10 @@ func TestDeleteAggregationSetError(t *testing.T) {
 					{Member: base.AggregationSetKey("default", "mygroup", setID), Score: float64(now.Add(aggregationTimeout).Unix())},
 				},
 			},
-			ctx:   deadlineExceededCtx,
-			qname: "default",
-			gname: "mygroup",
-			setID: setID,
+			ctx:       deadlineExceededCtx,
+			queueName: "default",
+			gname:     "mygroup",
+			setID:     setID,
 			// want data unchanged.
 			wantAggregationSets: map[string][]redis.Z{
 				base.AggregationSetKey("default", "mygroup", setID): {
@@ -3663,7 +3663,7 @@ func TestDeleteAggregationSetError(t *testing.T) {
 			h.SeedRedisZSets(t, r.client, tc.aggregationSets)
 			h.SeedRedisZSets(t, r.client, tc.allAggregationSets)
 
-			if err := r.DeleteAggregationSet(tc.ctx, tc.qname, tc.gname, tc.setID); err == nil {
+			if err := r.DeleteAggregationSet(tc.ctx, tc.queueName, tc.gname, tc.setID); err == nil {
 				t.Fatal("DeleteAggregationSet returned nil, want non-nil error")
 			}
 
@@ -3692,7 +3692,7 @@ func TestReclaimStaleAggregationSets(t *testing.T) {
 		groups                 map[string][]redis.Z // map redis-key to redis-zset
 		aggregationSets        map[string][]redis.Z
 		allAggregationSets     map[string][]redis.Z
-		qname                  string
+		queueName              string
 		wantGroups             map[string][]redis.Z
 		wantAggregationSets    map[string][]redis.Z
 		wantAllAggregationSets map[string][]redis.Z
@@ -3720,7 +3720,7 @@ func TestReclaimStaleAggregationSets(t *testing.T) {
 					{Member: base.AggregationSetKey("default", "bar", "set2"), Score: float64(now.Add(40 * time.Second).Unix())},  // set2 is not expired
 				},
 			},
-			qname: "default",
+			queueName: "default",
 			wantGroups: map[string][]redis.Z{
 				base.GroupKey("default", "foo"): {
 					{Member: m1.ID, Score: float64(now.Add(-3 * time.Minute).Unix())},
@@ -3752,7 +3752,7 @@ func TestReclaimStaleAggregationSets(t *testing.T) {
 		h.SeedRedisZSets(t, r.client, tc.aggregationSets)
 		h.SeedRedisZSets(t, r.client, tc.allAggregationSets)
 
-		if err := r.ReclaimStaleAggregationSets(ctx, tc.qname); err != nil {
+		if err := r.ReclaimStaleAggregationSets(ctx, tc.queueName); err != nil {
 			t.Errorf("ReclaimStaleAggregationSets returned error: %v", err)
 			continue
 		}
@@ -3774,9 +3774,9 @@ func TestListGroups(t *testing.T) {
 	m4 := h.NewTaskMessageBuilder().SetQueue("custom").SetGroup("qux").Build()
 
 	tests := []struct {
-		groups map[string]map[string][]base.Z
-		qname  string
-		want   []string
+		groups    map[string]map[string][]base.Z
+		queueName string
+		want      []string
 	}{
 		{
 			groups: map[string]map[string][]base.Z{
@@ -3789,8 +3789,8 @@ func TestListGroups(t *testing.T) {
 					"qux": {{Message: m4, Score: now.Add(-10 * time.Second).Unix()}},
 				},
 			},
-			qname: "default",
-			want:  []string{"foo", "bar"},
+			queueName: "default",
+			want:      []string{"foo", "bar"},
 		},
 		{
 			groups: map[string]map[string][]base.Z{
@@ -3803,8 +3803,8 @@ func TestListGroups(t *testing.T) {
 					"qux": {{Message: m4, Score: now.Add(-10 * time.Second).Unix()}},
 				},
 			},
-			qname: "custom",
-			want:  []string{"baz", "qux"},
+			queueName: "custom",
+			want:      []string{"baz", "qux"},
 		},
 	}
 
@@ -3812,7 +3812,7 @@ func TestListGroups(t *testing.T) {
 		h.FlushDB(t, r.client)
 		h.SeedAllGroups(t, r.client, tc.groups)
 
-		got, err := r.ListGroups(tc.qname)
+		got, err := r.ListGroups(tc.queueName)
 		if err != nil {
 			t.Errorf("ListGroups returned error: %v", err)
 			continue

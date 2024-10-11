@@ -49,9 +49,9 @@ func (b *TaskMessageBuilder) SetPayload(payload []byte) *TaskMessageBuilder {
 	return b
 }
 
-func (b *TaskMessageBuilder) SetQueue(qname string) *TaskMessageBuilder {
+func (b *TaskMessageBuilder) SetQueue(queueName string) *TaskMessageBuilder {
 	b.lazyInit()
-	b.msg.Queue = qname
+	b.msg.Queue = queueName
 	return b
 }
 

@@ -125,9 +125,9 @@ func BenchmarkDequeueMultipleQueues(b *testing.B) {
 		b.StopTimer()
 		testutil.FlushDB(b, r.client)
 		for i := 0; i < 10; i++ {
-			for _, qname := range queueNames {
+			for _, queueName := range queueNames {
 				m := testutil.NewTaskMessageWithQueue(
-					fmt.Sprintf("%s_task%d", qname, i), nil, qname)
+					fmt.Sprintf("%s_task%d", queueName, i), nil, queueName)
 				if err := r.Enqueue(ctx, m); err != nil {
 					b.Fatalf("Enqueue failed: %v", err)
 				}

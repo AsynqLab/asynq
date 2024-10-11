@@ -109,24 +109,24 @@ func TestForwarder(t *testing.T) {
 		time.Sleep(tc.wait)
 		s.shutdown()
 
-		for qname, want := range tc.wantScheduled {
-			gotScheduled := h.GetScheduledMessages(t, r, qname)
+		for queueName, want := range tc.wantScheduled {
+			gotScheduled := h.GetScheduledMessages(t, r, queueName)
 			if diff := cmp.Diff(want, gotScheduled, h.SortMsgOpt); diff != "" {
-				t.Errorf("mismatch found in %q after running forwarder: (-want, +got)\n%s", base.ScheduledKey(qname), diff)
+				t.Errorf("mismatch found in %q after running forwarder: (-want, +got)\n%s", base.ScheduledKey(queueName), diff)
 			}
 		}
 
-		for qname, want := range tc.wantRetry {
-			gotRetry := h.GetRetryMessages(t, r, qname)
+		for queueName, want := range tc.wantRetry {
+			gotRetry := h.GetRetryMessages(t, r, queueName)
 			if diff := cmp.Diff(want, gotRetry, h.SortMsgOpt); diff != "" {
-				t.Errorf("mismatch found in %q after running forwarder: (-want, +got)\n%s", base.RetryKey(qname), diff)
+				t.Errorf("mismatch found in %q after running forwarder: (-want, +got)\n%s", base.RetryKey(queueName), diff)
 			}
 		}
 
-		for qname, want := range tc.wantPending {
-			gotPending := h.GetPendingMessages(t, r, qname)
+		for queueName, want := range tc.wantPending {
+			gotPending := h.GetPendingMessages(t, r, queueName)
 			if diff := cmp.Diff(want, gotPending, h.SortMsgOpt); diff != "" {
-				t.Errorf("mismatch found in %q after running forwarder: (-want, +got)\n%s", base.PendingKey(qname), diff)
+				t.Errorf("mismatch found in %q after running forwarder: (-want, +got)\n%s", base.PendingKey(queueName), diff)
 			}
 		}
 	}

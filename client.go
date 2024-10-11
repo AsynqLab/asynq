@@ -242,11 +242,11 @@ func composeOptions(opts ...Option) (option, error) {
 		case retryOption:
 			res.retry = int(opt)
 		case queueOption:
-			qname := string(opt)
-			if err := base.ValidateQueueName(qname); err != nil {
+			queueName := string(opt)
+			if err := base.ValidateQueueName(queueName); err != nil {
 				return option{}, err
 			}
-			res.queue = qname
+			res.queue = queueName
 		case taskIDOption:
 			id := string(opt)
 			if isBlank(id) {

@@ -13,13 +13,13 @@ import (
 // The returned context is a child of the given context.
 func NewAsynqContext(
 	ctx context.Context,
-	id, qname string,
+	id, queueName string,
 	maxRetry, retryCount int,
 	deadline time.Time,
 ) (context.Context, context.CancelFunc) {
 	return asynqcontext.New(ctx, &base.TaskMessage{
 		ID:      id,
-		Queue:   qname,
+		Queue:   queueName,
 		Retry:   maxRetry,
 		Retried: retryCount,
 	}, deadline)

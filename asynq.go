@@ -522,10 +522,10 @@ func parseRedisSentinelURI(u *url.URL) (RedisConnOpt, error) {
 // ResultWriter is a client interface to write result data for a task.
 // It writes the data to the redis instance the server is connected to.
 type ResultWriter struct {
-	id     string // task ID this writer is responsible for
-	qname  string // queue name the task belongs to
-	broker base.Broker
-	ctx    context.Context // context associated with the task
+	id        string // task ID this writer is responsible for
+	queueName string // queue name the task belongs to
+	broker    base.Broker
+	ctx       context.Context // context associated with the task
 }
 
 // Write writes the given data as a result of the task the ResultWriter is associated with.
@@ -536,7 +536,7 @@ func (w *ResultWriter) Write(data []byte) (n int, err error) {
 	default:
 	}
 	ctx := context.Background()
-	return w.broker.WriteResult(ctx, w.qname, w.id, data)
+	return w.broker.WriteResult(ctx, w.queueName, w.id, data)
 }
 
 // TaskID returns the ID of the task the ResultWriter is associated with.

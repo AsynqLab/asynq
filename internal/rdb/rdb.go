@@ -79,8 +79,8 @@ func (r *RDB) runScriptWithErrorCode(ctx context.Context, op errors.Op, script *
 // enqueueCmd enqueues a given task message.
 //
 // Input:
-// KEYS[1] -> asynq:{<qname>}:t:<task_id>
-// KEYS[2] -> asynq:{<qname>}:pending
+// KEYS[1] -> asynq:{<queueName>}:t:<task_id>
+// KEYS[2] -> asynq:{<queueName>}:pending
 // --
 // ARGV[1] -> task message data
 // ARGV[2] -> task ID
@@ -133,8 +133,8 @@ func (r *RDB) Enqueue(ctx context.Context, msg *base.TaskMessage) error {
 // enqueueUniqueCmd enqueues the task message if the task is unique.
 //
 // KEYS[1] -> unique key
-// KEYS[2] -> asynq:{<qname>}:t:<taskid>
-// KEYS[3] -> asynq:{<qname>}:pending
+// KEYS[2] -> asynq:{<queueName>}:t:<taskid>
+// KEYS[3] -> asynq:{<queueName>}:pending
 // --
 // ARGV[1] -> task ID
 // ARGV[2] -> uniqueness lock TTL
@@ -198,10 +198,10 @@ func (r *RDB) EnqueueUnique(ctx context.Context, msg *base.TaskMessage, ttl time
 }
 
 // Input:
-// KEYS[1] -> asynq:{<qname>}:pending
-// KEYS[2] -> asynq:{<qname>}:paused
-// KEYS[3] -> asynq:{<qname>}:active
-// KEYS[4] -> asynq:{<qname>}:lease
+// KEYS[1] -> asynq:{<queueName>}:pending
+// KEYS[2] -> asynq:{<queueName>}:paused
+// KEYS[3] -> asynq:{<queueName>}:active
+// KEYS[4] -> asynq:{<queueName>}:lease
 // --
 // ARGV[1] -> initial lease expiration Unix time
 // ARGV[2] -> task key prefix
@@ -231,17 +231,17 @@ return nil`)
 // If all queues are empty, ErrNoProcessableTask error is returned.
 func (r *RDB) Dequeue(queueNames ...string) (msg *base.TaskMessage, leaseExpirationTime time.Time, err error) {
 	var op errors.Op = "rdb.Dequeue"
-	for _, qname := range queueNames {
+	for _, queueName := range queueNames {
 		keys := []string{
-			base.PendingKey(qname),
-			base.PausedKey(qname),
-			base.ActiveKey(qname),
-			base.LeaseKey(qname),
+			base.PendingKey(queueName),
+			base.PausedKey(queueName),
+			base.ActiveKey(queueName),
+			base.LeaseKey(queueName),
 		}
 		leaseExpirationTime = r.clock.Now().Add(LeaseDuration)
 		argv := []interface{}{
 			leaseExpirationTime.Unix(),
-			base.TaskKeyPrefix(qname),
+			base.TaskKeyPrefix(queueName),
 		}
 		res, err := dequeueCmd.Run(context.Background(), r.client, keys, argv...).Result()
 		if errors.Is(err, redis.Nil) {
@@ -261,11 +261,11 @@ func (r *RDB) Dequeue(queueNames ...string) (msg *base.TaskMessage, leaseExpirat
 	return nil, time.Time{}, errors.E(op, errors.NotFound, errors.ErrNoProcessableTask)
 }
 
-// KEYS[1] -> asynq:{<qname>}:active
-// KEYS[2] -> asynq:{<qname>}:lease
-// KEYS[3] -> asynq:{<qname>}:t:<task_id>
-// KEYS[4] -> asynq:{<qname>}:processed:<yyyy-mm-dd>
-// KEYS[5] -> asynq:{<qname>}:processed
+// KEYS[1] -> asynq:{<queueName>}:active
+// KEYS[2] -> asynq:{<queueName>}:lease
+// KEYS[3] -> asynq:{<queueName>}:t:<task_id>
+// KEYS[4] -> asynq:{<queueName>}:processed:<yyyy-mm-dd>
+// KEYS[5] -> asynq:{<queueName>}:processed
 // -------
 // ARGV[1] -> task ID
 // ARGV[2] -> stats expiration timestamp
@@ -293,11 +293,11 @@ end
 return redis.status_reply("OK")
 `)
 
-// KEYS[1] -> asynq:{<qname>}:active
-// KEYS[2] -> asynq:{<qname>}:lease
-// KEYS[3] -> asynq:{<qname>}:t:<task_id>
-// KEYS[4] -> asynq:{<qname>}:processed:<yyyy-mm-dd>
-// KEYS[5] -> asynq:{<qname>}:processed
+// KEYS[1] -> asynq:{<queueName>}:active
+// KEYS[2] -> asynq:{<queueName>}:lease
+// KEYS[3] -> asynq:{<queueName>}:t:<task_id>
+// KEYS[4] -> asynq:{<queueName>}:processed:<yyyy-mm-dd>
+// KEYS[5] -> asynq:{<queueName>}:processed
 // KEYS[6] -> unique key
 // -------
 // ARGV[1] -> task ID
@@ -355,12 +355,12 @@ func (r *RDB) Done(ctx context.Context, msg *base.TaskMessage) error {
 	return r.runScript(ctx, op, doneCmd, keys, argv...)
 }
 
-// KEYS[1] -> asynq:{<qname>}:active
-// KEYS[2] -> asynq:{<qname>}:lease
-// KEYS[3] -> asynq:{<qname>}:completed
-// KEYS[4] -> asynq:{<qname>}:t:<task_id>
-// KEYS[5] -> asynq:{<qname>}:processed:<yyyy-mm-dd>
-// KEYS[6] -> asynq:{<qname>}:processed
+// KEYS[1] -> asynq:{<queueName>}:active
+// KEYS[2] -> asynq:{<queueName>}:lease
+// KEYS[3] -> asynq:{<queueName>}:completed
+// KEYS[4] -> asynq:{<queueName>}:t:<task_id>
+// KEYS[5] -> asynq:{<queueName>}:processed:<yyyy-mm-dd>
+// KEYS[6] -> asynq:{<queueName>}:processed
 //
 // ARGV[1] -> task ID
 // ARGV[2] -> stats expiration timestamp
@@ -391,13 +391,13 @@ end
 return redis.status_reply("OK")
 `)
 
-// KEYS[1] -> asynq:{<qname>}:active
-// KEYS[2] -> asynq:{<qname>}:lease
-// KEYS[3] -> asynq:{<qname>}:completed
-// KEYS[4] -> asynq:{<qname>}:t:<task_id>
-// KEYS[5] -> asynq:{<qname>}:processed:<yyyy-mm-dd>
-// KEYS[6] -> asynq:{<qname>}:processed
-// KEYS[7] -> asynq:{<qname>}:unique:{<checksum>}
+// KEYS[1] -> asynq:{<queueName>}:active
+// KEYS[2] -> asynq:{<queueName>}:lease
+// KEYS[3] -> asynq:{<queueName>}:completed
+// KEYS[4] -> asynq:{<queueName>}:t:<task_id>
+// KEYS[5] -> asynq:{<queueName>}:processed:<yyyy-mm-dd>
+// KEYS[6] -> asynq:{<queueName>}:processed
+// KEYS[7] -> asynq:{<queueName>}:unique:{<checksum>}
 //
 // ARGV[1] -> task ID
 // ARGV[2] -> stats expiration timestamp
@@ -465,10 +465,10 @@ func (r *RDB) MarkAsComplete(ctx context.Context, msg *base.TaskMessage) error {
 	return r.runScript(ctx, op, markAsCompleteCmd, keys, argv...)
 }
 
-// KEYS[1] -> asynq:{<qname>}:active
-// KEYS[2] -> asynq:{<qname>}:lease
-// KEYS[3] -> asynq:{<qname>}:pending
-// KEYS[4] -> asynq:{<qname>}:t:<task_id>
+// KEYS[1] -> asynq:{<queueName>}:active
+// KEYS[2] -> asynq:{<queueName>}:lease
+// KEYS[3] -> asynq:{<queueName>}:pending
+// KEYS[4] -> asynq:{<queueName>}:t:<task_id>
 // ARGV[1] -> task ID
 // Note: Use RPUSH to push to the head of the queue.
 var requeueCmd = redis.NewScript(`
@@ -494,9 +494,9 @@ func (r *RDB) Requeue(ctx context.Context, msg *base.TaskMessage) error {
 	return r.runScript(ctx, op, requeueCmd, keys, msg.ID)
 }
 
-// KEYS[1] -> asynq:{<qname>}:t:<task_id>
-// KEYS[2] -> asynq:{<qname>}:g:<group_key>
-// KEYS[3] -> asynq:{<qname>}:groups
+// KEYS[1] -> asynq:{<queueName>}:t:<task_id>
+// KEYS[2] -> asynq:{<queueName>}:g:<group_key>
+// KEYS[3] -> asynq:{<queueName>}:groups
 // -------
 // ARGV[1] -> task message data
 // ARGV[2] -> task ID
@@ -549,9 +549,9 @@ func (r *RDB) AddToGroup(ctx context.Context, msg *base.TaskMessage, groupKey st
 	return nil
 }
 
-// KEYS[1] -> asynq:{<qname>}:t:<task_id>
-// KEYS[2] -> asynq:{<qname>}:g:<group_key>
-// KEYS[3] -> asynq:{<qname>}:groups
+// KEYS[1] -> asynq:{<queueName>}:t:<task_id>
+// KEYS[2] -> asynq:{<queueName>}:g:<group_key>
+// KEYS[3] -> asynq:{<queueName>}:groups
 // KEYS[4] -> unique key
 // -------
 // ARGV[1] -> task message data
@@ -616,8 +616,8 @@ func (r *RDB) AddToGroupUnique(ctx context.Context, msg *base.TaskMessage, group
 	return nil
 }
 
-// KEYS[1] -> asynq:{<qname>}:t:<task_id>
-// KEYS[2] -> asynq:{<qname>}:scheduled
+// KEYS[1] -> asynq:{<queueName>}:t:<task_id>
+// KEYS[2] -> asynq:{<queueName>}:scheduled
 // -------
 // ARGV[1] -> task message data
 // ARGV[2] -> process_at time in Unix time
@@ -667,8 +667,8 @@ func (r *RDB) Schedule(ctx context.Context, msg *base.TaskMessage, processAt tim
 }
 
 // KEYS[1] -> unique key
-// KEYS[2] -> asynq:{<qname>}:t:<task_id>
-// KEYS[3] -> asynq:{<qname>}:scheduled
+// KEYS[2] -> asynq:{<queueName>}:t:<task_id>
+// KEYS[3] -> asynq:{<queueName>}:scheduled
 // -------
 // ARGV[1] -> task ID
 // ARGV[2] -> uniqueness lock TTL
@@ -730,14 +730,14 @@ func (r *RDB) ScheduleUnique(ctx context.Context, msg *base.TaskMessage, process
 	return nil
 }
 
-// KEYS[1] -> asynq:{<qname>}:t:<task_id>
-// KEYS[2] -> asynq:{<qname>}:active
-// KEYS[3] -> asynq:{<qname>}:lease
-// KEYS[4] -> asynq:{<qname>}:retry
-// KEYS[5] -> asynq:{<qname>}:processed:<yyyy-mm-dd>
-// KEYS[6] -> asynq:{<qname>}:failed:<yyyy-mm-dd>
-// KEYS[7] -> asynq:{<qname>}:processed
-// KEYS[8] -> asynq:{<qname>}:failed
+// KEYS[1] -> asynq:{<queueName>}:t:<task_id>
+// KEYS[2] -> asynq:{<queueName>}:active
+// KEYS[3] -> asynq:{<queueName>}:lease
+// KEYS[4] -> asynq:{<queueName>}:retry
+// KEYS[5] -> asynq:{<queueName>}:processed:<yyyy-mm-dd>
+// KEYS[6] -> asynq:{<queueName>}:failed:<yyyy-mm-dd>
+// KEYS[7] -> asynq:{<queueName>}:processed
+// KEYS[8] -> asynq:{<queueName>}:failed
 // -------
 // ARGV[1] -> task ID
 // ARGV[2] -> updated base.TaskMessage value
@@ -817,14 +817,14 @@ const (
 	archivedExpirationInDays = 90    // number of days before an archived task gets deleted permanently
 )
 
-// KEYS[1] -> asynq:{<qname>}:t:<task_id>
-// KEYS[2] -> asynq:{<qname>}:active
-// KEYS[3] -> asynq:{<qname>}:lease
-// KEYS[4] -> asynq:{<qname>}:archived
-// KEYS[5] -> asynq:{<qname>}:processed:<yyyy-mm-dd>
-// KEYS[6] -> asynq:{<qname>}:failed:<yyyy-mm-dd>
-// KEYS[7] -> asynq:{<qname>}:processed
-// KEYS[8] -> asynq:{<qname>}:failed
+// KEYS[1] -> asynq:{<queueName>}:t:<task_id>
+// KEYS[2] -> asynq:{<queueName>}:active
+// KEYS[3] -> asynq:{<queueName>}:lease
+// KEYS[4] -> asynq:{<queueName>}:archived
+// KEYS[5] -> asynq:{<queueName>}:processed:<yyyy-mm-dd>
+// KEYS[6] -> asynq:{<queueName>}:failed:<yyyy-mm-dd>
+// KEYS[7] -> asynq:{<queueName>}:processed
+// KEYS[8] -> asynq:{<queueName>}:failed
 // -------
 // ARGV[1] -> task ID
 // ARGV[2] -> updated base.TaskMessage value
@@ -902,16 +902,16 @@ func (r *RDB) Archive(ctx context.Context, msg *base.TaskMessage, errMsg string)
 // and move any tasks that are ready to be processed to the pending set.
 func (r *RDB) ForwardIfReady(queueNames ...string) error {
 	var op errors.Op = "rdb.ForwardIfReady"
-	for _, qname := range queueNames {
-		if err := r.forwardAll(qname); err != nil {
+	for _, queueName := range queueNames {
+		if err := r.forwardAll(queueName); err != nil {
 			return errors.E(op, errors.CanonicalCode(err), err)
 		}
 	}
 	return nil
 }
 
-// KEYS[1] -> source queue (e.g. asynq:{<qname>:scheduled or asynq:{<qname>}:retry})
-// KEYS[2] -> asynq:{<qname>}:pending
+// KEYS[1] -> source queue (e.g. asynq:{<queueName>:scheduled or asynq:{<queueName>}:retry})
+// KEYS[2] -> asynq:{<queueName>}:pending
 // ARGV[1] -> current unix time in seconds
 // ARGV[2] -> task key prefix
 // ARGV[3] -> current unix time in nsec
@@ -962,11 +962,11 @@ func (r *RDB) forward(delayedKey, pendingKey, taskKeyPrefix, groupKeyPrefix stri
 
 // forwardAll checks for tasks in scheduled/retry state that are ready to be run, and updates
 // their state to "pending" or "aggregating".
-func (r *RDB) forwardAll(qname string) (err error) {
-	delayedKeys := []string{base.ScheduledKey(qname), base.RetryKey(qname)}
-	pendingKey := base.PendingKey(qname)
-	taskKeyPrefix := base.TaskKeyPrefix(qname)
-	groupKeyPrefix := base.GroupKeyPrefix(qname)
+func (r *RDB) forwardAll(queueName string) (err error) {
+	delayedKeys := []string{base.ScheduledKey(queueName), base.RetryKey(queueName)}
+	pendingKey := base.PendingKey(queueName)
+	taskKeyPrefix := base.TaskKeyPrefix(queueName)
+	groupKeyPrefix := base.GroupKeyPrefix(queueName)
 	for _, delayedKey := range delayedKeys {
 		n := 1
 		for n != 0 {
@@ -980,9 +980,9 @@ func (r *RDB) forwardAll(qname string) (err error) {
 }
 
 // ListGroups returns a list of all known groups in the given queue.
-func (r *RDB) ListGroups(qname string) ([]string, error) {
+func (r *RDB) ListGroups(queueName string) ([]string, error) {
 	var op errors.Op = "RDB.ListGroups"
-	groups, err := r.client.SMembers(context.Background(), base.AllGroups(qname)).Result()
+	groups, err := r.client.SMembers(context.Background(), base.AllGroups(queueName)).Result()
 	if err != nil {
 		return nil, errors.E(op, errors.Unknown, &errors.RedisCommandError{Command: "smembers", Err: err})
 	}
@@ -998,10 +998,10 @@ func (r *RDB) ListGroups(qname string) ([]string, error) {
 // and put them in an aggregation set. Additionally, if the creation of aggregation set
 // empties the group, it will clear the group name from the all groups set.
 //
-// KEYS[1] -> asynq:{<qname>}:g:<gname>
-// KEYS[2] -> asynq:{<qname>}:g:<gname>:<aggregation_set_id>
-// KEYS[3] -> asynq:{<qname>}:aggregation_sets
-// KEYS[4] -> asynq:{<qname>}:groups
+// KEYS[1] -> asynq:{<queueName>}:g:<gname>
+// KEYS[2] -> asynq:{<queueName>}:g:<gname>:<aggregation_set_id>
+// KEYS[3] -> asynq:{<queueName>}:aggregation_sets
+// KEYS[4] -> asynq:{<queueName>}:groups
 // -------
 // ARGV[1] -> max group size
 // ARGV[2] -> max group delay in unix time
@@ -1083,15 +1083,15 @@ const aggregationTimeout = 2 * time.Minute
 //
 // Note: It assumes that this function is called at frequency less than or equal to the gracePeriod. In other words,
 // the function only checks the most recently added task against the given gracePeriod.
-func (r *RDB) AggregationCheck(qname, gname string, t time.Time, gracePeriod, maxDelay time.Duration, maxSize int) (string, error) {
+func (r *RDB) AggregationCheck(queueName, gname string, t time.Time, gracePeriod, maxDelay time.Duration, maxSize int) (string, error) {
 	var op errors.Op = "RDB.AggregationCheck"
 	aggregationSetID := uuid.NewString()
 	expireTime := r.clock.Now().Add(aggregationTimeout)
 	keys := []string{
-		base.GroupKey(qname, gname),
-		base.AggregationSetKey(qname, gname, aggregationSetID),
-		base.AllAggregationSets(qname),
-		base.AllGroups(qname),
+		base.GroupKey(queueName, gname),
+		base.AggregationSetKey(queueName, gname, aggregationSetID),
+		base.AllAggregationSets(queueName),
+		base.AllGroups(queueName),
 	}
 	argv := []interface{}{
 		maxSize,
@@ -1115,7 +1115,7 @@ func (r *RDB) AggregationCheck(qname, gname string, t time.Time, gracePeriod, ma
 	}
 }
 
-// KEYS[1] -> asynq:{<qname>}:g:<gname>:<aggregation_set_id>
+// KEYS[1] -> asynq:{<queueName>}:g:<gname>:<aggregation_set_id>
 // ------
 // ARGV[1] -> task key prefix
 //
@@ -1136,12 +1136,12 @@ return msgs
 
 // ReadAggregationSet retrieves members of an aggregation set and returns a list of tasks in the set and
 // the deadline for aggregating those tasks.
-func (r *RDB) ReadAggregationSet(qname, gname, setID string) ([]*base.TaskMessage, time.Time, error) {
+func (r *RDB) ReadAggregationSet(queueName, gname, setID string) ([]*base.TaskMessage, time.Time, error) {
 	var op errors.Op = "RDB.ReadAggregationSet"
 	ctx := context.Background()
-	aggSetKey := base.AggregationSetKey(qname, gname, setID)
+	aggSetKey := base.AggregationSetKey(queueName, gname, setID)
 	res, err := readAggregationSetCmd.Run(ctx, r.client,
-		[]string{aggSetKey}, base.TaskKeyPrefix(qname)).Result()
+		[]string{aggSetKey}, base.TaskKeyPrefix(queueName)).Result()
 	if err != nil {
 		return nil, time.Time{}, errors.E(op, errors.Unknown, fmt.Sprintf("redis eval error: %v", err))
 	}
@@ -1157,15 +1157,15 @@ func (r *RDB) ReadAggregationSet(qname, gname, setID string) ([]*base.TaskMessag
 		}
 		msgs = append(msgs, msg)
 	}
-	deadlineUnix, err := r.client.ZScore(ctx, base.AllAggregationSets(qname), aggSetKey).Result()
+	deadlineUnix, err := r.client.ZScore(ctx, base.AllAggregationSets(queueName), aggSetKey).Result()
 	if err != nil {
 		return nil, time.Time{}, errors.E(op, errors.Unknown, &errors.RedisCommandError{Command: "zscore", Err: err})
 	}
 	return msgs, time.Unix(int64(deadlineUnix), 0), nil
 }
 
-// KEYS[1] -> asynq:{<qname>}:g:<gname>:<aggregation_set_id>
-// KEYS[2] -> asynq:{<qname>}:aggregation_sets
+// KEYS[1] -> asynq:{<queueName>}:g:<gname>:<aggregation_set_id>
+// KEYS[2] -> asynq:{<queueName>}:aggregation_sets
 // -------
 // ARGV[1] -> task key prefix
 //
@@ -1186,16 +1186,16 @@ return redis.status_reply("OK")
 `)
 
 // DeleteAggregationSet deletes the aggregation set and its members identified by the parameters.
-func (r *RDB) DeleteAggregationSet(ctx context.Context, qname, gname, setID string) error {
+func (r *RDB) DeleteAggregationSet(ctx context.Context, queueName, gname, setID string) error {
 	var op errors.Op = "RDB.DeleteAggregationSet"
 	keys := []string{
-		base.AggregationSetKey(qname, gname, setID),
-		base.AllAggregationSets(qname),
+		base.AggregationSetKey(queueName, gname, setID),
+		base.AllAggregationSets(queueName),
 	}
-	return r.runScript(ctx, op, deleteAggregationSetCmd, keys, base.TaskKeyPrefix(qname))
+	return r.runScript(ctx, op, deleteAggregationSetCmd, keys, base.TaskKeyPrefix(queueName))
 }
 
-// KEYS[1] -> asynq:{<qname>}:aggregation_sets
+// KEYS[1] -> asynq:{<queueName>}:aggregation_sets
 // -------
 // ARGV[1] -> current time in unix time
 var reclaimStateAggregationSetsCmd = redis.NewScript(`
@@ -1215,13 +1215,13 @@ return redis.status_reply("OK")
 
 // ReclaimStaleAggregationSets checks for any stale aggregation sets in the given queue, and
 // reclaim tasks in the stale aggregation set by putting them back in the group.
-func (r *RDB) ReclaimStaleAggregationSets(ctx context.Context, qname string) error {
+func (r *RDB) ReclaimStaleAggregationSets(ctx context.Context, queueName string) error {
 	var op errors.Op = "RDB.ReclaimStaleAggregationSets"
 	return r.runScript(ctx, op, reclaimStateAggregationSetsCmd,
-		[]string{base.AllAggregationSets(qname)}, r.clock.Now().Unix())
+		[]string{base.AllAggregationSets(queueName)}, r.clock.Now().Unix())
 }
 
-// KEYS[1] -> asynq:{<qname>}:completed
+// KEYS[1] -> asynq:{<queueName>}:completed
 // ARGV[1] -> current time in unix time
 // ARGV[2] -> task key prefix
 // ARGV[3] -> batch size (i.e. maximum number of tasks to delete)
@@ -1237,9 +1237,9 @@ return table.getn(ids)`)
 
 // DeleteExpiredCompletedTasks checks for any expired tasks in the given queue's completed set,
 // and delete all expired tasks.
-func (r *RDB) DeleteExpiredCompletedTasks(ctx context.Context, qname string, batchSize int) error {
+func (r *RDB) DeleteExpiredCompletedTasks(ctx context.Context, queueName string, batchSize int) error {
 	for {
-		n, err := r.deleteExpiredCompletedTasks(ctx, qname, batchSize)
+		n, err := r.deleteExpiredCompletedTasks(ctx, queueName, batchSize)
 		if err != nil {
 			return err
 		}
@@ -1251,12 +1251,12 @@ func (r *RDB) DeleteExpiredCompletedTasks(ctx context.Context, qname string, bat
 
 // deleteExpiredCompletedTasks runs the lua script to delete expired deleted task with the specified
 // batch size. It reports the number of tasks deleted.
-func (r *RDB) deleteExpiredCompletedTasks(ctx context.Context, qname string, batchSize int) (int64, error) {
+func (r *RDB) deleteExpiredCompletedTasks(ctx context.Context, queueName string, batchSize int) (int64, error) {
 	var op errors.Op = "rdb.DeleteExpiredCompletedTasks"
-	keys := []string{base.CompletedKey(qname)}
+	keys := []string{base.CompletedKey(queueName)}
 	argv := []interface{}{
 		r.clock.Now().Unix(),
-		base.TaskKeyPrefix(qname),
+		base.TaskKeyPrefix(queueName),
 		batchSize,
 	}
 	res, err := deleteExpiredCompletedTasksCmd.Run(ctx, r.client, keys, argv...).Result()
@@ -1270,7 +1270,7 @@ func (r *RDB) deleteExpiredCompletedTasks(ctx context.Context, qname string, bat
 	return n, nil
 }
 
-// KEYS[1] -> asynq:{<qname>}:lease
+// KEYS[1] -> asynq:{<queueName>}:lease
 // ARGV[1] -> cutoff in unix time
 // ARGV[2] -> task key prefix
 var listLeaseExpiredCmd = redis.NewScript(`
@@ -1290,10 +1290,10 @@ return res
 func (r *RDB) ListLeaseExpired(ctx context.Context, cutoff time.Time, queueNames ...string) ([]*base.TaskMessage, error) {
 	var op errors.Op = "rdb.ListLeaseExpired"
 	var msgs []*base.TaskMessage
-	for _, qname := range queueNames {
+	for _, queueName := range queueNames {
 		res, err := listLeaseExpiredCmd.Run(ctx, r.client,
-			[]string{base.LeaseKey(qname)},
-			cutoff.Unix(), base.TaskKeyPrefix(qname)).Result()
+			[]string{base.LeaseKey(queueName)},
+			cutoff.Unix(), base.TaskKeyPrefix(queueName)).Result()
 		if err != nil {
 			return nil, errors.E(op, errors.Internal, fmt.Sprintf("redis eval error: %v", err))
 		}
@@ -1314,7 +1314,7 @@ func (r *RDB) ListLeaseExpired(ctx context.Context, cutoff time.Time, queueNames
 
 // ExtendLease extends the lease for the given tasks by LeaseDuration (30s).
 // It returns a new expiration time if the operation was successful.
-func (r *RDB) ExtendLease(ctx context.Context, qname string, ids ...string) (expirationTime time.Time, err error) {
+func (r *RDB) ExtendLease(ctx context.Context, queueName string, ids ...string) (expirationTime time.Time, err error) {
 	expireAt := r.clock.Now().Add(LeaseDuration)
 	var zs []redis.Z
 	for _, id := range ids {
@@ -1322,7 +1322,7 @@ func (r *RDB) ExtendLease(ctx context.Context, qname string, ids ...string) (exp
 	}
 	// Use XX option to only update elements that already exist; Don't add new elements
 	// TODO: Consider adding GT option to ensure we only "extend" the lease. Caveat is that GT is supported from redis v6.2.0 or above.
-	err = r.client.ZAddXX(ctx, base.LeaseKey(qname), zs...).Err()
+	err = r.client.ZAddXX(ctx, base.LeaseKey(queueName), zs...).Err()
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -1507,9 +1507,9 @@ func (r *RDB) ClearSchedulerHistory(entryID string) error {
 }
 
 // WriteResult writes the given result data for the specified task.
-func (r *RDB) WriteResult(ctx context.Context, qname, taskID string, data []byte) (int, error) {
+func (r *RDB) WriteResult(ctx context.Context, queueName, taskID string, data []byte) (int, error) {
 	var op errors.Op = "rdb.WriteResult"
-	taskKey := base.TaskKey(qname, taskID)
+	taskKey := base.TaskKey(queueName, taskID)
 	if err := r.client.HSet(ctx, taskKey, "result", data).Err(); err != nil {
 		return 0, errors.E(op, errors.Unknown, &errors.RedisCommandError{Command: "hset", Err: err})
 	}

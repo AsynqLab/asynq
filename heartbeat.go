@@ -184,8 +184,8 @@ func (h *heartbeater) beat() {
 		h.logger.Errorf("Failed to write server state data: %v", err)
 	}
 
-	for qname, ids := range idsByQueue {
-		expirationTime, err := h.broker.ExtendLease(ctx, qname, ids...)
+	for queueName, ids := range idsByQueue {
+		expirationTime, err := h.broker.ExtendLease(ctx, queueName, ids...)
 		if err != nil {
 			h.logger.Errorf("Failed to extend lease for tasks %v: %v", ids, err)
 			continue

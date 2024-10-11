@@ -451,12 +451,12 @@ func NewServer(r RedisConnOpt, cfg Config) *Server {
 		isFailureFunc = defaultIsFailureFunc
 	}
 	queues := make(map[string]int)
-	for qname, p := range cfg.Queues {
-		if err := base.ValidateQueueName(qname); err != nil {
+	for queueName, p := range cfg.Queues {
+		if err := base.ValidateQueueName(queueName); err != nil {
 			continue // ignore invalid queue names
 		}
 		if p > 0 {
-			queues[qname] = p
+			queues[queueName] = p
 		}
 	}
 	if len(queues) == 0 {

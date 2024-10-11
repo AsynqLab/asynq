@@ -113,11 +113,11 @@ func NewTaskMessage(taskType string, payload []byte) *base.TaskMessage {
 
 // NewTaskMessageWithQueue returns a new instance of TaskMessage given a
 // task type, payload and queue name.
-func NewTaskMessageWithQueue(taskType string, payload []byte, qname string) *base.TaskMessage {
+func NewTaskMessageWithQueue(taskType string, payload []byte, queueName string) *base.TaskMessage {
 	return &base.TaskMessage{
 		ID:       uuid.NewString(),
 		Type:     taskType,
-		Queue:    qname,
+		Queue:    queueName,
 		Retry:    25,
 		Payload:  payload,
 		Timeout:  1800, // default timeout of 30 mins
@@ -207,67 +207,67 @@ func FlushDB(tb testing.TB, r redis.UniversalClient) {
 }
 
 // SeedPendingQueue initializes the specified queue with the given messages.
-func SeedPendingQueue(tb testing.TB, r redis.UniversalClient, msgs []*base.TaskMessage, qname string) {
+func SeedPendingQueue(tb testing.TB, r redis.UniversalClient, msgs []*base.TaskMessage, queueName string) {
 	tb.Helper()
-	r.SAdd(context.Background(), base.AllQueues, qname)
-	seedRedisList(tb, r, base.PendingKey(qname), msgs, base.TaskStatePending)
+	r.SAdd(context.Background(), base.AllQueues, queueName)
+	seedRedisList(tb, r, base.PendingKey(queueName), msgs, base.TaskStatePending)
 }
 
 // SeedActiveQueue initializes the active queue with the given messages.
-func SeedActiveQueue(tb testing.TB, r redis.UniversalClient, msgs []*base.TaskMessage, qname string) {
+func SeedActiveQueue(tb testing.TB, r redis.UniversalClient, msgs []*base.TaskMessage, queueName string) {
 	tb.Helper()
-	r.SAdd(context.Background(), base.AllQueues, qname)
-	seedRedisList(tb, r, base.ActiveKey(qname), msgs, base.TaskStateActive)
+	r.SAdd(context.Background(), base.AllQueues, queueName)
+	seedRedisList(tb, r, base.ActiveKey(queueName), msgs, base.TaskStateActive)
 }
 
 // SeedScheduledQueue initializes the scheduled queue with the given messages.
-func SeedScheduledQueue(tb testing.TB, r redis.UniversalClient, entries []base.Z, qname string) {
+func SeedScheduledQueue(tb testing.TB, r redis.UniversalClient, entries []base.Z, queueName string) {
 	tb.Helper()
-	r.SAdd(context.Background(), base.AllQueues, qname)
-	seedRedisZSet(tb, r, base.ScheduledKey(qname), entries, base.TaskStateScheduled)
+	r.SAdd(context.Background(), base.AllQueues, queueName)
+	seedRedisZSet(tb, r, base.ScheduledKey(queueName), entries, base.TaskStateScheduled)
 }
 
 // SeedRetryQueue initializes the retry queue with the given messages.
-func SeedRetryQueue(tb testing.TB, r redis.UniversalClient, entries []base.Z, qname string) {
+func SeedRetryQueue(tb testing.TB, r redis.UniversalClient, entries []base.Z, queueName string) {
 	tb.Helper()
-	r.SAdd(context.Background(), base.AllQueues, qname)
-	seedRedisZSet(tb, r, base.RetryKey(qname), entries, base.TaskStateRetry)
+	r.SAdd(context.Background(), base.AllQueues, queueName)
+	seedRedisZSet(tb, r, base.RetryKey(queueName), entries, base.TaskStateRetry)
 }
 
 // SeedArchivedQueue initializes the archived queue with the given messages.
-func SeedArchivedQueue(tb testing.TB, r redis.UniversalClient, entries []base.Z, qname string) {
+func SeedArchivedQueue(tb testing.TB, r redis.UniversalClient, entries []base.Z, queueName string) {
 	tb.Helper()
-	r.SAdd(context.Background(), base.AllQueues, qname)
-	seedRedisZSet(tb, r, base.ArchivedKey(qname), entries, base.TaskStateArchived)
+	r.SAdd(context.Background(), base.AllQueues, queueName)
+	seedRedisZSet(tb, r, base.ArchivedKey(queueName), entries, base.TaskStateArchived)
 }
 
 // SeedLease initializes the lease set with the given entries.
-func SeedLease(tb testing.TB, r redis.UniversalClient, entries []base.Z, qname string) {
+func SeedLease(tb testing.TB, r redis.UniversalClient, entries []base.Z, queueName string) {
 	tb.Helper()
-	r.SAdd(context.Background(), base.AllQueues, qname)
-	seedRedisZSet(tb, r, base.LeaseKey(qname), entries, base.TaskStateActive)
+	r.SAdd(context.Background(), base.AllQueues, queueName)
+	seedRedisZSet(tb, r, base.LeaseKey(queueName), entries, base.TaskStateActive)
 }
 
 // SeedCompletedQueue initializes the completed set with the given entries.
-func SeedCompletedQueue(tb testing.TB, r redis.UniversalClient, entries []base.Z, qname string) {
+func SeedCompletedQueue(tb testing.TB, r redis.UniversalClient, entries []base.Z, queueName string) {
 	tb.Helper()
-	r.SAdd(context.Background(), base.AllQueues, qname)
-	seedRedisZSet(tb, r, base.CompletedKey(qname), entries, base.TaskStateCompleted)
+	r.SAdd(context.Background(), base.AllQueues, queueName)
+	seedRedisZSet(tb, r, base.CompletedKey(queueName), entries, base.TaskStateCompleted)
 }
 
 // SeedGroup initializes the group with the given entries.
-func SeedGroup(tb testing.TB, r redis.UniversalClient, entries []base.Z, qname, gname string) {
+func SeedGroup(tb testing.TB, r redis.UniversalClient, entries []base.Z, queueName, gname string) {
 	tb.Helper()
 	ctx := context.Background()
-	r.SAdd(ctx, base.AllQueues, qname)
-	r.SAdd(ctx, base.AllGroups(qname), gname)
-	seedRedisZSet(tb, r, base.GroupKey(qname, gname), entries, base.TaskStateAggregating)
+	r.SAdd(ctx, base.AllQueues, queueName)
+	r.SAdd(ctx, base.AllGroups(queueName), gname)
+	seedRedisZSet(tb, r, base.GroupKey(queueName, gname), entries, base.TaskStateAggregating)
 }
 
-func SeedAggregationSet(tb testing.TB, r redis.UniversalClient, entries []base.Z, qname, gname, setID string) {
+func SeedAggregationSet(tb testing.TB, r redis.UniversalClient, entries []base.Z, queueName, gname, setID string) {
 	tb.Helper()
-	r.SAdd(context.Background(), base.AllQueues, qname)
-	seedRedisZSet(tb, r, base.AggregationSetKey(qname, gname, setID), entries, base.TaskStateAggregating)
+	r.SAdd(context.Background(), base.AllQueues, queueName)
+	seedRedisZSet(tb, r, base.AggregationSetKey(queueName, gname, setID), entries, base.TaskStateAggregating)
 }
 
 // SeedAllPendingQueues initializes all of the specified queues with the given messages.
@@ -333,9 +333,9 @@ func SeedAllCompletedQueues(tb testing.TB, r redis.UniversalClient, completed ma
 // added to the group.
 func SeedAllGroups(tb testing.TB, r redis.UniversalClient, groups map[string]map[string][]base.Z) {
 	tb.Helper()
-	for qname, g := range groups {
+	for queueName, g := range groups {
 		for gname, entries := range g {
-			SeedGroup(tb, r, entries, qname, gname)
+			SeedGroup(tb, r, entries, queueName, gname)
 		}
 	}
 }
@@ -400,98 +400,98 @@ func seedRedisZSet(tb testing.TB, c redis.UniversalClient, key string,
 
 // GetPendingMessages returns all pending messages in the given queue.
 // It also asserts the state field of the task.
-func GetPendingMessages(tb testing.TB, r redis.UniversalClient, qname string) []*base.TaskMessage {
+func GetPendingMessages(tb testing.TB, r redis.UniversalClient, queueName string) []*base.TaskMessage {
 	tb.Helper()
-	return getMessagesFromList(tb, r, qname, base.PendingKey, base.TaskStatePending)
+	return getMessagesFromList(tb, r, queueName, base.PendingKey, base.TaskStatePending)
 }
 
 // GetActiveMessages returns all active messages in the given queue.
 // It also asserts the state field of the task.
-func GetActiveMessages(tb testing.TB, r redis.UniversalClient, qname string) []*base.TaskMessage {
+func GetActiveMessages(tb testing.TB, r redis.UniversalClient, queueName string) []*base.TaskMessage {
 	tb.Helper()
-	return getMessagesFromList(tb, r, qname, base.ActiveKey, base.TaskStateActive)
+	return getMessagesFromList(tb, r, queueName, base.ActiveKey, base.TaskStateActive)
 }
 
 // GetScheduledMessages returns all scheduled task messages in the given queue.
 // It also asserts the state field of the task.
-func GetScheduledMessages(tb testing.TB, r redis.UniversalClient, qname string) []*base.TaskMessage {
+func GetScheduledMessages(tb testing.TB, r redis.UniversalClient, queueName string) []*base.TaskMessage {
 	tb.Helper()
-	return getMessagesFromZSet(tb, r, qname, base.ScheduledKey, base.TaskStateScheduled)
+	return getMessagesFromZSet(tb, r, queueName, base.ScheduledKey, base.TaskStateScheduled)
 }
 
 // GetRetryMessages returns all retry messages in the given queue.
 // It also asserts the state field of the task.
-func GetRetryMessages(tb testing.TB, r redis.UniversalClient, qname string) []*base.TaskMessage {
+func GetRetryMessages(tb testing.TB, r redis.UniversalClient, queueName string) []*base.TaskMessage {
 	tb.Helper()
-	return getMessagesFromZSet(tb, r, qname, base.RetryKey, base.TaskStateRetry)
+	return getMessagesFromZSet(tb, r, queueName, base.RetryKey, base.TaskStateRetry)
 }
 
 // GetArchivedMessages returns all archived messages in the given queue.
 // It also asserts the state field of the task.
-func GetArchivedMessages(tb testing.TB, r redis.UniversalClient, qname string) []*base.TaskMessage {
+func GetArchivedMessages(tb testing.TB, r redis.UniversalClient, queueName string) []*base.TaskMessage {
 	tb.Helper()
-	return getMessagesFromZSet(tb, r, qname, base.ArchivedKey, base.TaskStateArchived)
+	return getMessagesFromZSet(tb, r, queueName, base.ArchivedKey, base.TaskStateArchived)
 }
 
 // GetCompletedMessages returns all completed task messages in the given queue.
 // It also asserts the state field of the task.
-func GetCompletedMessages(tb testing.TB, r redis.UniversalClient, qname string) []*base.TaskMessage {
+func GetCompletedMessages(tb testing.TB, r redis.UniversalClient, queueName string) []*base.TaskMessage {
 	tb.Helper()
-	return getMessagesFromZSet(tb, r, qname, base.CompletedKey, base.TaskStateCompleted)
+	return getMessagesFromZSet(tb, r, queueName, base.CompletedKey, base.TaskStateCompleted)
 }
 
 // GetScheduledEntries returns all scheduled messages and its score in the given queue.
 // It also asserts the state field of the task.
-func GetScheduledEntries(tb testing.TB, r redis.UniversalClient, qname string) []base.Z {
+func GetScheduledEntries(tb testing.TB, r redis.UniversalClient, queueName string) []base.Z {
 	tb.Helper()
-	return getMessagesFromZSetWithScores(tb, r, qname, base.ScheduledKey, base.TaskStateScheduled)
+	return getMessagesFromZSetWithScores(tb, r, queueName, base.ScheduledKey, base.TaskStateScheduled)
 }
 
 // GetRetryEntries returns all retry messages and its score in the given queue.
 // It also asserts the state field of the task.
-func GetRetryEntries(tb testing.TB, r redis.UniversalClient, qname string) []base.Z {
+func GetRetryEntries(tb testing.TB, r redis.UniversalClient, queueName string) []base.Z {
 	tb.Helper()
-	return getMessagesFromZSetWithScores(tb, r, qname, base.RetryKey, base.TaskStateRetry)
+	return getMessagesFromZSetWithScores(tb, r, queueName, base.RetryKey, base.TaskStateRetry)
 }
 
 // GetArchivedEntries returns all archived messages and its score in the given queue.
 // It also asserts the state field of the task.
-func GetArchivedEntries(tb testing.TB, r redis.UniversalClient, qname string) []base.Z {
+func GetArchivedEntries(tb testing.TB, r redis.UniversalClient, queueName string) []base.Z {
 	tb.Helper()
-	return getMessagesFromZSetWithScores(tb, r, qname, base.ArchivedKey, base.TaskStateArchived)
+	return getMessagesFromZSetWithScores(tb, r, queueName, base.ArchivedKey, base.TaskStateArchived)
 }
 
 // GetLeaseEntries returns all task IDs and its score in the lease set for the given queue.
 // It also asserts the state field of the task.
-func GetLeaseEntries(tb testing.TB, r redis.UniversalClient, qname string) []base.Z {
+func GetLeaseEntries(tb testing.TB, r redis.UniversalClient, queueName string) []base.Z {
 	tb.Helper()
-	return getMessagesFromZSetWithScores(tb, r, qname, base.LeaseKey, base.TaskStateActive)
+	return getMessagesFromZSetWithScores(tb, r, queueName, base.LeaseKey, base.TaskStateActive)
 }
 
 // GetCompletedEntries returns all completed messages and its score in the given queue.
 // It also asserts the state field of the task.
-func GetCompletedEntries(tb testing.TB, r redis.UniversalClient, qname string) []base.Z {
+func GetCompletedEntries(tb testing.TB, r redis.UniversalClient, queueName string) []base.Z {
 	tb.Helper()
-	return getMessagesFromZSetWithScores(tb, r, qname, base.CompletedKey, base.TaskStateCompleted)
+	return getMessagesFromZSetWithScores(tb, r, queueName, base.CompletedKey, base.TaskStateCompleted)
 }
 
 // GetGroupEntries returns all scheduled messages and its score in the given queue.
 // It also asserts the state field of the task.
-func GetGroupEntries(tb testing.TB, r redis.UniversalClient, qname, groupKey string) []base.Z {
+func GetGroupEntries(tb testing.TB, r redis.UniversalClient, queueName, groupKey string) []base.Z {
 	tb.Helper()
-	return getMessagesFromZSetWithScores(tb, r, qname,
-		func(qname string) string { return base.GroupKey(qname, groupKey) }, base.TaskStateAggregating)
+	return getMessagesFromZSetWithScores(tb, r, queueName,
+		func(queueName string) string { return base.GroupKey(queueName, groupKey) }, base.TaskStateAggregating)
 }
 
-// Retrieves all messages stored under `keyFn(qname)` key in redis list.
-func getMessagesFromList(tb testing.TB, r redis.UniversalClient, qname string,
-	keyFn func(qname string) string, state base.TaskState,
+// Retrieves all messages stored under `keyFn(queueName)` key in redis list.
+func getMessagesFromList(tb testing.TB, r redis.UniversalClient, queueName string,
+	keyFn func(queueName string) string, state base.TaskState,
 ) []*base.TaskMessage {
 	tb.Helper()
-	ids := r.LRange(context.Background(), keyFn(qname), 0, -1).Val()
+	ids := r.LRange(context.Background(), keyFn(queueName), 0, -1).Val()
 	var msgs []*base.TaskMessage
 	for _, id := range ids {
-		taskKey := base.TaskKey(qname, id)
+		taskKey := base.TaskKey(queueName, id)
 		data := r.HGet(context.Background(), taskKey, "msg").Val()
 		msgs = append(msgs, MustUnmarshal(tb, data))
 		if gotState := r.HGet(context.Background(), taskKey, "state").Val(); gotState != state.String() {
@@ -501,15 +501,15 @@ func getMessagesFromList(tb testing.TB, r redis.UniversalClient, qname string,
 	return msgs
 }
 
-// Retrieves all messages stored under `keyFn(qname)` key in redis zset (sorted-set).
-func getMessagesFromZSet(tb testing.TB, r redis.UniversalClient, qname string,
-	keyFn func(qname string) string, state base.TaskState,
+// Retrieves all messages stored under `keyFn(queueName)` key in redis zset (sorted-set).
+func getMessagesFromZSet(tb testing.TB, r redis.UniversalClient, queueName string,
+	keyFn func(queueName string) string, state base.TaskState,
 ) []*base.TaskMessage {
 	tb.Helper()
-	ids := r.ZRange(context.Background(), keyFn(qname), 0, -1).Val()
+	ids := r.ZRange(context.Background(), keyFn(queueName), 0, -1).Val()
 	var msgs []*base.TaskMessage
 	for _, id := range ids {
-		taskKey := base.TaskKey(qname, id)
+		taskKey := base.TaskKey(queueName, id)
 		msg := r.HGet(context.Background(), taskKey, "msg").Val()
 		msgs = append(msgs, MustUnmarshal(tb, msg))
 		if gotState := r.HGet(context.Background(), taskKey, "state").Val(); gotState != state.String() {
@@ -519,16 +519,16 @@ func getMessagesFromZSet(tb testing.TB, r redis.UniversalClient, qname string,
 	return msgs
 }
 
-// Retrieves all messages along with their scores stored under `keyFn(qname)` key in redis zset (sorted-set).
+// Retrieves all messages along with their scores stored under `keyFn(queueName)` key in redis zset (sorted-set).
 func getMessagesFromZSetWithScores(tb testing.TB, r redis.UniversalClient,
-	qname string, keyFn func(qname string) string, state base.TaskState,
+	queueName string, keyFn func(queueName string) string, state base.TaskState,
 ) []base.Z {
 	tb.Helper()
-	zs := r.ZRangeWithScores(context.Background(), keyFn(qname), 0, -1).Val()
+	zs := r.ZRangeWithScores(context.Background(), keyFn(queueName), 0, -1).Val()
 	var res []base.Z
 	for _, z := range zs {
 		taskID := z.Member.(string)
-		taskKey := base.TaskKey(qname, taskID)
+		taskKey := base.TaskKey(queueName, taskID)
 		msg := r.HGet(context.Background(), taskKey, "msg").Val()
 		res = append(res, base.Z{Message: MustUnmarshal(tb, msg), Score: int64(z.Score)})
 		if gotState := r.HGet(context.Background(), taskKey, "state").Val(); gotState != state.String() {

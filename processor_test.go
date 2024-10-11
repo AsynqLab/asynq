@@ -206,9 +206,9 @@ func TestProcessorSuccessWithMultipleQueues(t *testing.T) {
 		// Wait for two second to allow all pending tasks to be processed.
 		time.Sleep(2 * time.Second)
 		// Make sure no messages are stuck in active list.
-		for _, qname := range tc.queues {
-			if l := r.LLen(context.Background(), base.ActiveKey(qname)).Val(); l != 0 {
-				t.Errorf("%q has %d tasks, want 0", base.ActiveKey(qname), l)
+		for _, queueName := range tc.queues {
+			if l := r.LLen(context.Background(), base.ActiveKey(queueName)).Val(); l != 0 {
+				t.Errorf("%q has %d tasks, want 0", base.ActiveKey(queueName), l)
 			}
 		}
 		p.shutdown()
@@ -466,17 +466,17 @@ func TestProcessorMarkAsComplete(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		p.shutdown()
 
-		for qname, want := range tc.wantPending {
-			gotPending := h.GetPendingMessages(t, r, qname)
+		for queueName, want := range tc.wantPending {
+			gotPending := h.GetPendingMessages(t, r, queueName)
 			if diff := cmp.Diff(want, gotPending, cmpopts.EquateEmpty()); diff != "" {
-				t.Errorf("diff found in %q pending set; want=%v, got=%v\n%s", qname, want, gotPending, diff)
+				t.Errorf("diff found in %q pending set; want=%v, got=%v\n%s", queueName, want, gotPending, diff)
 			}
 		}
 
-		for qname, want := range tc.wantCompleted(runTime) {
-			gotCompleted := h.GetCompletedEntries(t, r, qname)
+		for queueName, want := range tc.wantCompleted(runTime) {
+			gotCompleted := h.GetCompletedEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotCompleted, cmpopts.EquateEmpty()); diff != "" {
-				t.Errorf("diff found in %q completed set; want=%v, got=%v\n%s", qname, want, gotCompleted, diff)
+				t.Errorf("diff found in %q completed set; want=%v, got=%v\n%s", queueName, want, gotCompleted, diff)
 			}
 		}
 	}
@@ -665,8 +665,8 @@ func TestProcessorWithStrictPriority(t *testing.T) {
 
 	for _, tc := range tests {
 		h.FlushDB(t, r) // clean up db before each test case.
-		for qname, msgs := range tc.pending {
-			h.SeedPendingQueue(t, r, msgs, qname)
+		for queueName, msgs := range tc.pending {
+			h.SeedPendingQueue(t, r, msgs, queueName)
 		}
 
 		// instantiate a new processor
@@ -712,9 +712,9 @@ func TestProcessorWithStrictPriority(t *testing.T) {
 		p.start(&sync.WaitGroup{})
 		time.Sleep(tc.wait)
 		// Make sure no tasks are stuck in active list.
-		for _, qname := range tc.queues {
-			if l := r.LLen(context.Background(), base.ActiveKey(qname)).Val(); l != 0 {
-				t.Errorf("%q has %d tasks, want 0", base.ActiveKey(qname), l)
+		for _, queueName := range tc.queues {
+			if l := r.LLen(context.Background(), base.ActiveKey(queueName)).Val(); l != 0 {
+				t.Errorf("%q has %d tasks, want 0", base.ActiveKey(queueName), l)
 			}
 		}
 		p.shutdown()

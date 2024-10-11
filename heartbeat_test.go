@@ -229,10 +229,10 @@ func TestHeartbeater(t *testing.T) {
 			continue
 		}
 
-		for qname, wantLease := range tc.wantLease1 {
-			gotLease := h.GetLeaseEntries(t, r, qname)
+		for queueName, wantLease := range tc.wantLease1 {
+			gotLease := h.GetLeaseEntries(t, r, queueName)
 			if diff := cmp.Diff(wantLease, gotLease, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("%s: mismatch found in %q: (-want,+got):\n%s", tc.desc, base.LeaseKey(qname), diff)
+				t.Errorf("%s: mismatch found in %q: (-want,+got):\n%s", tc.desc, base.LeaseKey(queueName), diff)
 			}
 		}
 
@@ -257,10 +257,10 @@ func TestHeartbeater(t *testing.T) {
 		// Wait for heartbeater to write to redis
 		time.Sleep(tc.interval * 2)
 
-		for qname, wantLease := range tc.wantLease2 {
-			gotLease := h.GetLeaseEntries(t, r, qname)
+		for queueName, wantLease := range tc.wantLease2 {
+			gotLease := h.GetLeaseEntries(t, r, queueName)
 			if diff := cmp.Diff(wantLease, gotLease, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("%s: mismatch found in %q: (-want,+got):\n%s", tc.desc, base.LeaseKey(qname), diff)
+				t.Errorf("%s: mismatch found in %q: (-want,+got):\n%s", tc.desc, base.LeaseKey(queueName), diff)
 			}
 		}
 

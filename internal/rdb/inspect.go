@@ -73,18 +73,18 @@ type DailyStats struct {
 	Time time.Time
 }
 
-// KEYS[1] ->  asynq:<qname>:pending
-// KEYS[2] ->  asynq:<qname>:active
-// KEYS[3] ->  asynq:<qname>:scheduled
-// KEYS[4] ->  asynq:<qname>:retry
-// KEYS[5] ->  asynq:<qname>:archived
-// KEYS[6] ->  asynq:<qname>:completed
-// KEYS[7] ->  asynq:<qname>:processed:<yyyy-mm-dd>
-// KEYS[8] ->  asynq:<qname>:failed:<yyyy-mm-dd>
-// KEYS[9] ->  asynq:<qname>:processed
-// KEYS[10] -> asynq:<qname>:failed
-// KEYS[11] -> asynq:<qname>:paused
-// KEYS[12] -> asynq:<qname>:groups
+// KEYS[1] ->  asynq:<queueName>:pending
+// KEYS[2] ->  asynq:<queueName>:active
+// KEYS[3] ->  asynq:<queueName>:scheduled
+// KEYS[4] ->  asynq:<queueName>:retry
+// KEYS[5] ->  asynq:<queueName>:archived
+// KEYS[6] ->  asynq:<queueName>:completed
+// KEYS[7] ->  asynq:<queueName>:processed:<yyyy-mm-dd>
+// KEYS[8] ->  asynq:<queueName>:failed:<yyyy-mm-dd>
+// KEYS[9] ->  asynq:<queueName>:processed
+// KEYS[10] -> asynq:<queueName>:failed
+// KEYS[11] -> asynq:<queueName>:paused
+// KEYS[12] -> asynq:<queueName>:groups
 // --------
 // ARGV[1] -> task key prefix
 // ARGV[2] -> group key prefix
@@ -133,33 +133,33 @@ table.insert(res, aggregating_count)
 return res`)
 
 // CurrentStats returns a current state of the queues.
-func (r *RDB) CurrentStats(qname string) (*Stats, error) {
+func (r *RDB) CurrentStats(queueName string) (*Stats, error) {
 	var op errors.Op = "rdb.CurrentStats"
-	exists, err := r.queueExists(qname)
+	exists, err := r.queueExists(queueName)
 	if err != nil {
 		return nil, errors.E(op, errors.Unknown, err)
 	}
 	if !exists {
-		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: qname})
+		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: queueName})
 	}
 	now := r.clock.Now()
 	keys := []string{
-		base.PendingKey(qname),
-		base.ActiveKey(qname),
-		base.ScheduledKey(qname),
-		base.RetryKey(qname),
-		base.ArchivedKey(qname),
-		base.CompletedKey(qname),
-		base.ProcessedKey(qname, now),
-		base.FailedKey(qname, now),
-		base.ProcessedTotalKey(qname),
-		base.FailedTotalKey(qname),
-		base.PausedKey(qname),
-		base.AllGroups(qname),
+		base.PendingKey(queueName),
+		base.ActiveKey(queueName),
+		base.ScheduledKey(queueName),
+		base.RetryKey(queueName),
+		base.ArchivedKey(queueName),
+		base.CompletedKey(queueName),
+		base.ProcessedKey(queueName, now),
+		base.FailedKey(queueName, now),
+		base.ProcessedTotalKey(queueName),
+		base.FailedTotalKey(queueName),
+		base.PausedKey(queueName),
+		base.AllGroups(queueName),
 	}
 	argv := []interface{}{
-		base.TaskKeyPrefix(qname),
-		base.GroupKeyPrefix(qname),
+		base.TaskKeyPrefix(queueName),
+		base.GroupKeyPrefix(queueName),
 	}
 	res, err := currentStatsCmd.Run(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
@@ -170,7 +170,7 @@ func (r *RDB) CurrentStats(qname string) (*Stats, error) {
 		return nil, errors.E(op, errors.Internal, "cast error: unexpected return value from Lua script")
 	}
 	stats := &Stats{
-		Queue:     qname,
+		Queue:     queueName,
 		Timestamp: now,
 	}
 	size := 0
@@ -178,33 +178,33 @@ func (r *RDB) CurrentStats(qname string) (*Stats, error) {
 		key := cast.ToString(data[i])
 		val := cast.ToInt(data[i+1])
 		switch key {
-		case base.PendingKey(qname):
+		case base.PendingKey(queueName):
 			stats.Pending = val
 			size += val
-		case base.ActiveKey(qname):
+		case base.ActiveKey(queueName):
 			stats.Active = val
 			size += val
-		case base.ScheduledKey(qname):
+		case base.ScheduledKey(queueName):
 			stats.Scheduled = val
 			size += val
-		case base.RetryKey(qname):
+		case base.RetryKey(queueName):
 			stats.Retry = val
 			size += val
-		case base.ArchivedKey(qname):
+		case base.ArchivedKey(queueName):
 			stats.Archived = val
 			size += val
-		case base.CompletedKey(qname):
+		case base.CompletedKey(queueName):
 			stats.Completed = val
 			size += val
-		case base.ProcessedKey(qname, now):
+		case base.ProcessedKey(queueName, now):
 			stats.Processed = val
-		case base.FailedKey(qname, now):
+		case base.FailedKey(queueName, now):
 			stats.Failed = val
-		case base.ProcessedTotalKey(qname):
+		case base.ProcessedTotalKey(queueName):
 			stats.ProcessedTotal = val
-		case base.FailedTotalKey(qname):
+		case base.FailedTotalKey(queueName):
 			stats.FailedTotal = val
-		case base.PausedKey(qname):
+		case base.PausedKey(queueName):
 			if val == 0 {
 				stats.Paused = false
 			} else {
@@ -224,7 +224,7 @@ func (r *RDB) CurrentStats(qname string) (*Stats, error) {
 		}
 	}
 	stats.Size = size
-	memusg, err := r.memoryUsage(qname)
+	memusg, err := r.memoryUsage(queueName)
 	if err != nil {
 		return nil, errors.E(op, errors.CanonicalCode(err), err)
 	}
@@ -236,18 +236,18 @@ func (r *RDB) CurrentStats(qname string) (*Stats, error) {
 // from each redis list/zset. Returns approximate memory usage value
 // in bytes.
 //
-// KEYS[1] -> asynq:{qname}:active
-// KEYS[2] -> asynq:{qname}:pending
-// KEYS[3] -> asynq:{qname}:scheduled
-// KEYS[4] -> asynq:{qname}:retry
-// KEYS[5] -> asynq:{qname}:archived
-// KEYS[6] -> asynq:{qname}:completed
-// KEYS[7] -> asynq:{qname}:groups
+// KEYS[1] -> asynq:{queueName}:active
+// KEYS[2] -> asynq:{queueName}:pending
+// KEYS[3] -> asynq:{queueName}:scheduled
+// KEYS[4] -> asynq:{queueName}:retry
+// KEYS[5] -> asynq:{queueName}:archived
+// KEYS[6] -> asynq:{queueName}:completed
+// KEYS[7] -> asynq:{queueName}:groups
 // -------
-// ARGV[1] -> asynq:{qname}:t: (task key prefix)
+// ARGV[1] -> asynq:{queueName}:t: (task key prefix)
 // ARGV[2] -> task sample size per redis list/zset (e.g 20)
 // ARGV[3] -> group sample size
-// ARGV[4] -> asynq:{qname}:g: (group key prefix)
+// ARGV[4] -> asynq:{queueName}:g: (group key prefix)
 var memoryUsageCmd = redis.NewScript(`
 local sample_size = tonumber(ARGV[2])
 if sample_size <= 0 then
@@ -311,7 +311,7 @@ end
 return memusg
 `)
 
-func (r *RDB) memoryUsage(qname string) (int64, error) {
+func (r *RDB) memoryUsage(queueName string) (int64, error) {
 	var op errors.Op = "rdb.memoryUsage"
 	const (
 		taskSampleSize  = 20
@@ -319,19 +319,19 @@ func (r *RDB) memoryUsage(qname string) (int64, error) {
 	)
 
 	keys := []string{
-		base.ActiveKey(qname),
-		base.PendingKey(qname),
-		base.ScheduledKey(qname),
-		base.RetryKey(qname),
-		base.ArchivedKey(qname),
-		base.CompletedKey(qname),
-		base.AllGroups(qname),
+		base.ActiveKey(queueName),
+		base.PendingKey(queueName),
+		base.ScheduledKey(queueName),
+		base.RetryKey(queueName),
+		base.ArchivedKey(queueName),
+		base.CompletedKey(queueName),
+		base.AllGroups(queueName),
 	}
 	argv := []interface{}{
-		base.TaskKeyPrefix(qname),
+		base.TaskKeyPrefix(queueName),
 		taskSampleSize,
 		groupSampleSize,
-		base.GroupKeyPrefix(qname),
+		base.GroupKeyPrefix(queueName),
 	}
 	res, err := memoryUsageCmd.Run(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
@@ -356,17 +356,17 @@ end
 return res`)
 
 // HistoricalStats returns a list of stats from the last n days for the given queue.
-func (r *RDB) HistoricalStats(qname string, n int) ([]*DailyStats, error) {
+func (r *RDB) HistoricalStats(queueName string, n int) ([]*DailyStats, error) {
 	var op errors.Op = "rdb.HistoricalStats"
 	if n < 1 {
 		return nil, errors.E(op, errors.FailedPrecondition, "the number of days must be positive")
 	}
-	exists, err := r.queueExists(qname)
+	exists, err := r.queueExists(queueName)
 	if err != nil {
 		return nil, errors.E(op, errors.Unknown, &errors.RedisCommandError{Command: "sismember", Err: err})
 	}
 	if !exists {
-		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: qname})
+		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: queueName})
 	}
 	const day = 24 * time.Hour
 	now := r.clock.Now().UTC()
@@ -375,8 +375,8 @@ func (r *RDB) HistoricalStats(qname string, n int) ([]*DailyStats, error) {
 	for i := 0; i < n; i++ {
 		ts := now.Add(-time.Duration(i) * day)
 		days = append(days, ts)
-		keys = append(keys, base.ProcessedKey(qname, ts))
-		keys = append(keys, base.FailedKey(qname, ts))
+		keys = append(keys, base.ProcessedKey(queueName, ts))
+		keys = append(keys, base.FailedKey(queueName, ts))
 	}
 	res, err := historicalStatsCmd.Run(context.Background(), r.client, keys).Result()
 	if err != nil {
@@ -389,7 +389,7 @@ func (r *RDB) HistoricalStats(qname string, n int) ([]*DailyStats, error) {
 	var stats []*DailyStats
 	for i := 0; i < len(data); i += 2 {
 		stats = append(stats, &DailyStats{
-			Queue:     qname,
+			Queue:     queueName,
 			Processed: data[i],
 			Failed:    data[i+1],
 			Time:      days[i/2],
@@ -438,22 +438,22 @@ func reverse(x []*base.TaskInfo) {
 
 // checkQueueExists verifies whether the queue exists.
 // It returns QueueNotFoundError if queue doesn't exist.
-func (r *RDB) checkQueueExists(qname string) error {
-	exists, err := r.queueExists(qname)
+func (r *RDB) checkQueueExists(queueName string) error {
+	exists, err := r.queueExists(queueName)
 	if err != nil {
 		return errors.E(errors.Unknown, &errors.RedisCommandError{Command: "sismember", Err: err})
 	}
 	if !exists {
-		return errors.E(errors.Internal, &errors.QueueNotFoundError{Queue: qname})
+		return errors.E(errors.Internal, &errors.QueueNotFoundError{Queue: queueName})
 	}
 	return nil
 }
 
 // Input:
-// KEYS[1] -> task key (asynq:{<qname>}:t:<taskid>)
+// KEYS[1] -> task key (asynq:{<queueName>}:t:<taskid>)
 // ARGV[1] -> task id
 // ARGV[2] -> current time in Unix time (seconds)
-// ARGV[3] -> queue key prefix (asynq:{<qname>}:)
+// ARGV[3] -> queue key prefix (asynq:{<queueName>}:)
 //
 // Output:
 // Tuple of {msg, state, nextProcessAt, result}
@@ -478,21 +478,21 @@ var getTaskInfoCmd = redis.NewScript(`
 `)
 
 // GetTaskInfo returns a TaskInfo describing the task from the given queue.
-func (r *RDB) GetTaskInfo(qname, id string) (*base.TaskInfo, error) {
+func (r *RDB) GetTaskInfo(queueName, id string) (*base.TaskInfo, error) {
 	var op errors.Op = "rdb.GetTaskInfo"
-	if err := r.checkQueueExists(qname); err != nil {
+	if err := r.checkQueueExists(queueName); err != nil {
 		return nil, errors.E(op, errors.CanonicalCode(err), err)
 	}
-	keys := []string{base.TaskKey(qname, id)}
+	keys := []string{base.TaskKey(queueName, id)}
 	argv := []interface{}{
 		id,
 		r.clock.Now().Unix(),
-		base.QueueKeyPrefix(qname),
+		base.QueueKeyPrefix(queueName),
 	}
 	res, err := getTaskInfoCmd.Run(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
 		if err.Error() == "NOT FOUND" {
-			return nil, errors.E(op, errors.NotFound, &errors.TaskNotFoundError{Queue: qname, ID: id})
+			return nil, errors.E(op, errors.NotFound, &errors.TaskNotFoundError{Queue: queueName, ID: id})
 		}
 		return nil, errors.E(op, errors.Unknown, err)
 	}
@@ -551,7 +551,7 @@ type GroupStat struct {
 	Size int
 }
 
-// KEYS[1] -> asynq:{<qname>}:groups
+// KEYS[1] -> asynq:{<queueName>}:groups
 // -------
 // ARGV[1] -> group key prefix
 //
@@ -571,10 +571,10 @@ end
 return res
 `)
 
-func (r *RDB) GroupStats(qname string) ([]*GroupStat, error) {
+func (r *RDB) GroupStats(queueName string) ([]*GroupStat, error) {
 	var op errors.Op = "RDB.GroupStats"
-	keys := []string{base.AllGroups(qname)}
-	argv := []interface{}{base.GroupKeyPrefix(qname)}
+	keys := []string{base.AllGroups(queueName)}
+	argv := []interface{}{base.GroupKeyPrefix(queueName)}
 	res, err := groupStatsCmd.Run(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
 		return nil, errors.E(op, errors.Unknown, err)
@@ -612,16 +612,16 @@ func (p Pagination) stop() int64 {
 }
 
 // ListPending returns pending tasks that are ready to be processed.
-func (r *RDB) ListPending(ctx context.Context, qname string, pgn Pagination) ([]*base.TaskInfo, error) {
+func (r *RDB) ListPending(ctx context.Context, queueName string, pgn Pagination) ([]*base.TaskInfo, error) {
 	var op errors.Op = "rdb.ListPending"
-	exists, err := r.queueExists(qname)
+	exists, err := r.queueExists(queueName)
 	if err != nil {
 		return nil, errors.E(op, errors.Unknown, &errors.RedisCommandError{Command: "sismember", Err: err})
 	}
 	if !exists {
-		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: qname})
+		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: queueName})
 	}
-	res, err := r.listMessages(ctx, qname, base.TaskStatePending, pgn)
+	res, err := r.listMessages(ctx, queueName, base.TaskStatePending, pgn)
 	if err != nil {
 		return nil, errors.E(op, errors.CanonicalCode(err), err)
 	}
@@ -629,23 +629,23 @@ func (r *RDB) ListPending(ctx context.Context, qname string, pgn Pagination) ([]
 }
 
 // ListActive returns all tasks that are currently being processed for the given queue.
-func (r *RDB) ListActive(ctx context.Context, qname string, pgn Pagination) ([]*base.TaskInfo, error) {
+func (r *RDB) ListActive(ctx context.Context, queueName string, pgn Pagination) ([]*base.TaskInfo, error) {
 	var op errors.Op = "rdb.ListActive"
-	exists, err := r.queueExists(qname)
+	exists, err := r.queueExists(queueName)
 	if err != nil {
 		return nil, errors.E(op, errors.Unknown, &errors.RedisCommandError{Command: "sismember", Err: err})
 	}
 	if !exists {
-		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: qname})
+		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: queueName})
 	}
-	res, err := r.listMessages(ctx, qname, base.TaskStateActive, pgn)
+	res, err := r.listMessages(ctx, queueName, base.TaskStateActive, pgn)
 	if err != nil {
 		return nil, errors.E(op, errors.CanonicalCode(err), err)
 	}
 	return res, nil
 }
 
-// KEYS[1] -> key for id list (e.g. asynq:{<qname>}:pending)
+// KEYS[1] -> key for id list (e.g. asynq:{<queueName>}:pending)
 // ARGV[1] -> start offset
 // ARGV[2] -> stop offset
 // ARGV[3] -> task key prefix
@@ -662,15 +662,15 @@ return data
 `)
 
 // listMessages returns a list of TaskInfo in Redis list with the given key.
-func (r *RDB) listMessages(ctx context.Context, qname string, state base.TaskState, pgn Pagination) (
+func (r *RDB) listMessages(ctx context.Context, queueName string, state base.TaskState, pgn Pagination) (
 	[]*base.TaskInfo, error,
 ) {
 	var key string
 	switch state {
 	case base.TaskStateActive:
-		key = base.ActiveKey(qname)
+		key = base.ActiveKey(queueName)
 	case base.TaskStatePending:
-		key = base.PendingKey(qname)
+		key = base.PendingKey(queueName)
 	default:
 		panic(fmt.Sprintf("unsupported task state: %v", state))
 	}
@@ -678,7 +678,7 @@ func (r *RDB) listMessages(ctx context.Context, qname string, state base.TaskSta
 	// correct range and reverse the list to get the tasks with pagination.
 	stop := -pgn.start() - 1
 	start := -pgn.stop() - 1
-	res, err := listMessagesCmd.Run(ctx, r.client, []string{key}, start, stop, base.TaskKeyPrefix(qname)).Result()
+	res, err := listMessagesCmd.Run(ctx, r.client, []string{key}, start, stop, base.TaskKeyPrefix(queueName)).Result()
 	if err != nil {
 		return nil, errors.E(errors.Unknown, err)
 	}
@@ -713,16 +713,16 @@ func (r *RDB) listMessages(ctx context.Context, qname string, state base.TaskSta
 
 // ListScheduled returns all tasks from the given queue that are scheduled
 // to be processed in the future.
-func (r *RDB) ListScheduled(ctx context.Context, qname string, pgn Pagination) ([]*base.TaskInfo, error) {
+func (r *RDB) ListScheduled(ctx context.Context, queueName string, pgn Pagination) ([]*base.TaskInfo, error) {
 	var op errors.Op = "rdb.ListScheduled"
-	exists, err := r.queueExists(qname)
+	exists, err := r.queueExists(queueName)
 	if err != nil {
 		return nil, errors.E(op, errors.Unknown, &errors.RedisCommandError{Command: "sismember", Err: err})
 	}
 	if !exists {
-		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: qname})
+		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: queueName})
 	}
-	res, err := r.listZSetEntries(ctx, qname, base.TaskStateScheduled, base.ScheduledKey(qname), pgn)
+	res, err := r.listZSetEntries(ctx, queueName, base.TaskStateScheduled, base.ScheduledKey(queueName), pgn)
 	if err != nil {
 		return nil, errors.E(op, errors.CanonicalCode(err), err)
 	}
@@ -731,16 +731,16 @@ func (r *RDB) ListScheduled(ctx context.Context, qname string, pgn Pagination) (
 
 // ListRetry returns all tasks from the given queue that have failed before
 // and willl be retried in the future.
-func (r *RDB) ListRetry(ctx context.Context, qname string, pgn Pagination) ([]*base.TaskInfo, error) {
+func (r *RDB) ListRetry(ctx context.Context, queueName string, pgn Pagination) ([]*base.TaskInfo, error) {
 	var op errors.Op = "rdb.ListRetry"
-	exists, err := r.queueExists(qname)
+	exists, err := r.queueExists(queueName)
 	if err != nil {
 		return nil, errors.E(op, errors.Unknown, &errors.RedisCommandError{Command: "sismember", Err: err})
 	}
 	if !exists {
-		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: qname})
+		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: queueName})
 	}
-	res, err := r.listZSetEntries(ctx, qname, base.TaskStateRetry, base.RetryKey(qname), pgn)
+	res, err := r.listZSetEntries(ctx, queueName, base.TaskStateRetry, base.RetryKey(queueName), pgn)
 	if err != nil {
 		return nil, errors.E(op, errors.CanonicalCode(err), err)
 	}
@@ -748,16 +748,16 @@ func (r *RDB) ListRetry(ctx context.Context, qname string, pgn Pagination) ([]*b
 }
 
 // ListArchived returns all tasks from the given queue that have exhausted its retry limit.
-func (r *RDB) ListArchived(ctx context.Context, qname string, pgn Pagination) ([]*base.TaskInfo, error) {
+func (r *RDB) ListArchived(ctx context.Context, queueName string, pgn Pagination) ([]*base.TaskInfo, error) {
 	var op errors.Op = "rdb.ListArchived"
-	exists, err := r.queueExists(qname)
+	exists, err := r.queueExists(queueName)
 	if err != nil {
 		return nil, errors.E(op, errors.Unknown, &errors.RedisCommandError{Command: "sismember", Err: err})
 	}
 	if !exists {
-		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: qname})
+		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: queueName})
 	}
-	zs, err := r.listZSetEntries(ctx, qname, base.TaskStateArchived, base.ArchivedKey(qname), pgn)
+	zs, err := r.listZSetEntries(ctx, queueName, base.TaskStateArchived, base.ArchivedKey(queueName), pgn)
 	if err != nil {
 		return nil, errors.E(op, errors.CanonicalCode(err), err)
 	}
@@ -765,16 +765,16 @@ func (r *RDB) ListArchived(ctx context.Context, qname string, pgn Pagination) ([
 }
 
 // ListCompleted returns all tasks from the given queue that have completed successfully.
-func (r *RDB) ListCompleted(ctx context.Context, qname string, pgn Pagination) ([]*base.TaskInfo, error) {
+func (r *RDB) ListCompleted(ctx context.Context, queueName string, pgn Pagination) ([]*base.TaskInfo, error) {
 	var op errors.Op = "rdb.ListCompleted"
-	exists, err := r.queueExists(qname)
+	exists, err := r.queueExists(queueName)
 	if err != nil {
 		return nil, errors.E(op, errors.Unknown, &errors.RedisCommandError{Command: "sismember", Err: err})
 	}
 	if !exists {
-		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: qname})
+		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: queueName})
 	}
-	zs, err := r.listZSetEntries(ctx, qname, base.TaskStateCompleted, base.CompletedKey(qname), pgn)
+	zs, err := r.listZSetEntries(ctx, queueName, base.TaskStateCompleted, base.CompletedKey(queueName), pgn)
 	if err != nil {
 		return nil, errors.E(op, errors.CanonicalCode(err), err)
 	}
@@ -782,16 +782,16 @@ func (r *RDB) ListCompleted(ctx context.Context, qname string, pgn Pagination) (
 }
 
 // ListAggregating returns all tasks from the given group.
-func (r *RDB) ListAggregating(ctx context.Context, qname, gname string, pgn Pagination) ([]*base.TaskInfo, error) {
+func (r *RDB) ListAggregating(ctx context.Context, queueName, gname string, pgn Pagination) ([]*base.TaskInfo, error) {
 	var op errors.Op = "rdb.ListAggregating"
-	exists, err := r.queueExists(qname)
+	exists, err := r.queueExists(queueName)
 	if err != nil {
 		return nil, errors.E(op, errors.Unknown, &errors.RedisCommandError{Command: "sismember", Err: err})
 	}
 	if !exists {
-		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: qname})
+		return nil, errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: queueName})
 	}
-	zs, err := r.listZSetEntries(ctx, qname, base.TaskStateAggregating, base.GroupKey(qname, gname), pgn)
+	zs, err := r.listZSetEntries(ctx, queueName, base.TaskStateAggregating, base.GroupKey(queueName, gname), pgn)
 	if err != nil {
 		return nil, errors.E(op, errors.CanonicalCode(err), err)
 	}
@@ -799,11 +799,11 @@ func (r *RDB) ListAggregating(ctx context.Context, qname, gname string, pgn Pagi
 }
 
 // Reports whether a queue with the given name exists.
-func (r *RDB) queueExists(qname string) (bool, error) {
-	return r.client.SIsMember(context.Background(), base.AllQueues, qname).Result()
+func (r *RDB) queueExists(queueName string) (bool, error) {
+	return r.client.SIsMember(context.Background(), base.AllQueues, queueName).Result()
 }
 
-// KEYS[1] -> key for ids set (e.g. asynq:{<qname>}:scheduled)
+// KEYS[1] -> key for ids set (e.g. asynq:{<queueName>}:scheduled)
 // ARGV[1] -> min
 // ARGV[2] -> max
 // ARGV[3] -> task key prefix
@@ -827,9 +827,9 @@ return data
 
 // listZSetEntries returns a list of message and score pairs in Redis sorted-set
 // with the given key.
-func (r *RDB) listZSetEntries(ctx context.Context, qname string, state base.TaskState, key string, pgn Pagination) ([]*base.TaskInfo, error) {
+func (r *RDB) listZSetEntries(ctx context.Context, queueName string, state base.TaskState, key string, pgn Pagination) ([]*base.TaskInfo, error) {
 	res, err := listZSetEntriesCmd.Run(ctx, r.client, []string{key},
-		pgn.start(), pgn.stop(), base.TaskKeyPrefix(qname)).Result()
+		pgn.start(), pgn.stop(), base.TaskKeyPrefix(queueName)).Result()
 	if err != nil {
 		return nil, errors.E(errors.Unknown, err)
 	}
@@ -876,9 +876,9 @@ func (r *RDB) listZSetEntries(ctx context.Context, qname string, state base.Task
 // RunAllScheduledTasks enqueues all scheduled tasks from the given queue
 // and returns the number of tasks enqueued.
 // If a queue with the given name doesn't exist, it returns QueueNotFoundError.
-func (r *RDB) RunAllScheduledTasks(qname string) (int64, error) {
+func (r *RDB) RunAllScheduledTasks(queueName string) (int64, error) {
 	var op errors.Op = "rdb.RunAllScheduledTasks"
-	n, err := r.runAll(base.ScheduledKey(qname), qname)
+	n, err := r.runAll(base.ScheduledKey(queueName), queueName)
 	if errors.IsQueueNotFound(err) {
 		return 0, errors.E(op, errors.NotFound, err)
 	}
@@ -891,9 +891,9 @@ func (r *RDB) RunAllScheduledTasks(qname string) (int64, error) {
 // RunAllRetryTasks enqueues all retry tasks from the given queue
 // and returns the number of tasks enqueued.
 // If a queue with the given name doesn't exist, it returns QueueNotFoundError.
-func (r *RDB) RunAllRetryTasks(qname string) (int64, error) {
+func (r *RDB) RunAllRetryTasks(queueName string) (int64, error) {
 	var op errors.Op = "rdb.RunAllRetryTasks"
-	n, err := r.runAll(base.RetryKey(qname), qname)
+	n, err := r.runAll(base.RetryKey(queueName), queueName)
 	if errors.IsQueueNotFound(err) {
 		return 0, errors.E(op, errors.NotFound, err)
 	}
@@ -906,9 +906,9 @@ func (r *RDB) RunAllRetryTasks(qname string) (int64, error) {
 // RunAllArchivedTasks enqueues all archived tasks from the given queue
 // and returns the number of tasks enqueued.
 // If a queue with the given name doesn't exist, it returns QueueNotFoundError.
-func (r *RDB) RunAllArchivedTasks(qname string) (int64, error) {
+func (r *RDB) RunAllArchivedTasks(queueName string) (int64, error) {
 	var op errors.Op = "rdb.RunAllArchivedTasks"
-	n, err := r.runAll(base.ArchivedKey(qname), qname)
+	n, err := r.runAll(base.ArchivedKey(queueName), queueName)
 	if errors.IsQueueNotFound(err) {
 		return 0, errors.E(op, errors.NotFound, err)
 	}
@@ -921,9 +921,9 @@ func (r *RDB) RunAllArchivedTasks(qname string) (int64, error) {
 // runAllAggregatingCmd schedules all tasks in the group to run individually.
 //
 // Input:
-// KEYS[1] -> asynq:{<qname>}:g:<gname>
-// KEYS[2] -> asynq:{<qname>}:pending
-// KEYS[3] -> asynq:{<qname>}:groups
+// KEYS[1] -> asynq:{<queueName>}:g:<gname>
+// KEYS[2] -> asynq:{<queueName>}:pending
+// KEYS[3] -> asynq:{<queueName>}:groups
 // -------
 // ARGV[1] -> task key prefix
 // ARGV[2] -> group name
@@ -944,18 +944,18 @@ return table.getn(ids)
 // RunAllAggregatingTasks schedules all tasks from the given queue to run
 // and returns the number of tasks scheduled to run.
 // If a queue with the given name doesn't exist, it returns QueueNotFoundError.
-func (r *RDB) RunAllAggregatingTasks(qname, gname string) (int64, error) {
+func (r *RDB) RunAllAggregatingTasks(queueName, gname string) (int64, error) {
 	var op errors.Op = "rdb.RunAllAggregatingTasks"
-	if err := r.checkQueueExists(qname); err != nil {
+	if err := r.checkQueueExists(queueName); err != nil {
 		return 0, errors.E(op, errors.CanonicalCode(err), err)
 	}
 	keys := []string{
-		base.GroupKey(qname, gname),
-		base.PendingKey(qname),
-		base.AllGroups(qname),
+		base.GroupKey(queueName, gname),
+		base.PendingKey(queueName),
+		base.AllGroups(queueName),
 	}
 	argv := []interface{}{
-		base.TaskKeyPrefix(qname),
+		base.TaskKeyPrefix(queueName),
 		gname,
 	}
 	res, err := runAllAggregatingCmd.Run(context.Background(), r.client, keys, argv...).Result()
@@ -972,12 +972,12 @@ func (r *RDB) RunAllAggregatingTasks(qname, gname string) (int64, error) {
 // runTaskCmd is a Lua script that updates the given task to pending state.
 //
 // Input:
-// KEYS[1] -> asynq:{<qname>}:t:<task_id>
-// KEYS[2] -> asynq:{<qname>}:pending
-// KEYS[3] -> asynq:{<qname>}:groups
+// KEYS[1] -> asynq:{<queueName>}:t:<task_id>
+// KEYS[2] -> asynq:{<queueName>}:pending
+// KEYS[3] -> asynq:{<queueName>}:groups
 // --
 // ARGV[1] -> task ID
-// ARGV[2] -> queue key prefix; asynq:{<qname>}:
+// ARGV[2] -> queue key prefix; asynq:{<queueName>}:
 // ARGV[3] -> group key prefix
 //
 // Output:
@@ -1021,20 +1021,20 @@ return 1
 // If a queue with the given name doesn't exist, it returns QueueNotFoundError.
 // If a task with the given id doesn't exist in the queue, it returns TaskNotFoundError
 // If a task is in active or pending state it returns non-nil error with Code FailedPrecondition.
-func (r *RDB) RunTask(qname, id string) error {
+func (r *RDB) RunTask(queueName, id string) error {
 	var op errors.Op = "rdb.RunTask"
-	if err := r.checkQueueExists(qname); err != nil {
+	if err := r.checkQueueExists(queueName); err != nil {
 		return errors.E(op, errors.CanonicalCode(err), err)
 	}
 	keys := []string{
-		base.TaskKey(qname, id),
-		base.PendingKey(qname),
-		base.AllGroups(qname),
+		base.TaskKey(queueName, id),
+		base.PendingKey(queueName),
+		base.AllGroups(queueName),
 	}
 	argv := []interface{}{
 		id,
-		base.QueueKeyPrefix(qname),
-		base.GroupKeyPrefix(qname),
+		base.QueueKeyPrefix(queueName),
+		base.GroupKeyPrefix(queueName),
 	}
 	res, err := runTaskCmd.Run(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
@@ -1048,7 +1048,7 @@ func (r *RDB) RunTask(qname, id string) error {
 	case 1:
 		return nil
 	case 0:
-		return errors.E(op, errors.NotFound, &errors.TaskNotFoundError{Queue: qname, ID: id})
+		return errors.E(op, errors.NotFound, &errors.TaskNotFoundError{Queue: queueName, ID: id})
 	case -1:
 		return errors.E(op, errors.FailedPrecondition, "task is already running")
 	case -2:
@@ -1062,8 +1062,8 @@ func (r *RDB) RunTask(qname, id string) error {
 // (one of: scheduled, retry, archived) to pending state.
 //
 // Input:
-// KEYS[1] -> zset which holds task ids (e.g. asynq:{<qname>}:scheduled)
-// KEYS[2] -> asynq:{<qname>}:pending
+// KEYS[1] -> zset which holds task ids (e.g. asynq:{<queueName>}:scheduled)
+// KEYS[2] -> asynq:{<queueName>}:pending
 // --
 // ARGV[1] -> task key prefix
 //
@@ -1078,16 +1078,16 @@ end
 redis.call("DEL", KEYS[1])
 return table.getn(ids)`)
 
-func (r *RDB) runAll(zset, qname string) (int64, error) {
-	if err := r.checkQueueExists(qname); err != nil {
+func (r *RDB) runAll(zset, queueName string) (int64, error) {
+	if err := r.checkQueueExists(queueName); err != nil {
 		return 0, err
 	}
 	keys := []string{
 		zset,
-		base.PendingKey(qname),
+		base.PendingKey(queueName),
 	}
 	argv := []interface{}{
-		base.TaskKeyPrefix(qname),
+		base.TaskKeyPrefix(queueName),
 	}
 	res, err := runAllCmd.Run(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
@@ -1098,7 +1098,7 @@ func (r *RDB) runAll(zset, qname string) (int64, error) {
 		return 0, fmt.Errorf("could not cast %v to int64", res)
 	}
 	if n == -1 {
-		return 0, &errors.QueueNotFoundError{Queue: qname}
+		return 0, &errors.QueueNotFoundError{Queue: queueName}
 	}
 	return n, nil
 }
@@ -1106,9 +1106,9 @@ func (r *RDB) runAll(zset, qname string) (int64, error) {
 // ArchiveAllRetryTasks archives all retry tasks from the given queue and
 // returns the number of tasks that were moved.
 // If a queue with the given name doesn't exist, it returns QueueNotFoundError.
-func (r *RDB) ArchiveAllRetryTasks(qname string) (int64, error) {
+func (r *RDB) ArchiveAllRetryTasks(queueName string) (int64, error) {
 	var op errors.Op = "rdb.ArchiveAllRetryTasks"
-	n, err := r.archiveAll(base.RetryKey(qname), base.ArchivedKey(qname), qname)
+	n, err := r.archiveAll(base.RetryKey(queueName), base.ArchivedKey(queueName), queueName)
 	if errors.IsQueueNotFound(err) {
 		return 0, errors.E(op, errors.NotFound, err)
 	}
@@ -1121,9 +1121,9 @@ func (r *RDB) ArchiveAllRetryTasks(qname string) (int64, error) {
 // ArchiveAllScheduledTasks archives all scheduled tasks from the given queue and
 // returns the number of tasks that were moved.
 // If a queue with the given name doesn't exist, it returns QueueNotFoundError.
-func (r *RDB) ArchiveAllScheduledTasks(qname string) (int64, error) {
+func (r *RDB) ArchiveAllScheduledTasks(queueName string) (int64, error) {
 	var op errors.Op = "rdb.ArchiveAllScheduledTasks"
-	n, err := r.archiveAll(base.ScheduledKey(qname), base.ArchivedKey(qname), qname)
+	n, err := r.archiveAll(base.ScheduledKey(queueName), base.ArchivedKey(queueName), queueName)
 	if errors.IsQueueNotFound(err) {
 		return 0, errors.E(op, errors.NotFound, err)
 	}
@@ -1136,14 +1136,14 @@ func (r *RDB) ArchiveAllScheduledTasks(qname string) (int64, error) {
 // archiveAllAggregatingCmd archives all tasks in the given group.
 //
 // Input:
-// KEYS[1] -> asynq:{<qname>}:g:<gname>
-// KEYS[2] -> asynq:{<qname>}:archived
-// KEYS[3] -> asynq:{<qname>}:groups
+// KEYS[1] -> asynq:{<queueName>}:g:<gname>
+// KEYS[2] -> asynq:{<queueName>}:archived
+// KEYS[3] -> asynq:{<queueName>}:groups
 // -------
 // ARGV[1] -> current timestamp
 // ARGV[2] -> cutoff timestamp (e.g., 90 days ago)
 // ARGV[3] -> max number of tasks in archive (e.g., 100)
-// ARGV[4] -> task key prefix (asynq:{<qname>}:t:)
+// ARGV[4] -> task key prefix (asynq:{<queueName>}:t:)
 // ARGV[5] -> group name
 //
 // Output:
@@ -1164,22 +1164,22 @@ return table.getn(ids)
 // ArchiveAllAggregatingTasks archives all aggregating tasks from the given group
 // and returns the number of tasks archived.
 // If a queue with the given name doesn't exist, it returns QueueNotFoundError.
-func (r *RDB) ArchiveAllAggregatingTasks(qname, gname string) (int64, error) {
+func (r *RDB) ArchiveAllAggregatingTasks(queueName, gname string) (int64, error) {
 	var op errors.Op = "rdb.ArchiveAllAggregatingTasks"
-	if err := r.checkQueueExists(qname); err != nil {
+	if err := r.checkQueueExists(queueName); err != nil {
 		return 0, errors.E(op, errors.CanonicalCode(err), err)
 	}
 	keys := []string{
-		base.GroupKey(qname, gname),
-		base.ArchivedKey(qname),
-		base.AllGroups(qname),
+		base.GroupKey(queueName, gname),
+		base.ArchivedKey(queueName),
+		base.AllGroups(queueName),
 	}
 	now := r.clock.Now()
 	argv := []interface{}{
 		now.Unix(),
 		now.AddDate(0, 0, -archivedExpirationInDays).Unix(),
 		maxArchiveSize,
-		base.TaskKeyPrefix(qname),
+		base.TaskKeyPrefix(queueName),
 		gname,
 	}
 	res, err := archiveAllAggregatingCmd.Run(context.Background(), r.client, keys, argv...).Result()
@@ -1197,13 +1197,13 @@ func (r *RDB) ArchiveAllAggregatingTasks(qname, gname string) (int64, error) {
 // the given queue to archived state.
 //
 // Input:
-// KEYS[1] -> asynq:{<qname>}:pending
-// KEYS[2] -> asynq:{<qname>}:archived
+// KEYS[1] -> asynq:{<queueName>}:pending
+// KEYS[2] -> asynq:{<queueName>}:archived
 // --
 // ARGV[1] -> current timestamp
 // ARGV[2] -> cutoff timestamp (e.g., 90 days ago)
 // ARGV[3] -> max number of tasks in archive (e.g., 100)
-// ARGV[4] -> task key prefix (asynq:{<qname>}:t:)
+// ARGV[4] -> task key prefix (asynq:{<queueName>}:t:)
 //
 // Output:
 // integer: Number of tasks archived
@@ -1221,21 +1221,21 @@ return table.getn(ids)`)
 // ArchiveAllPendingTasks archives all pending tasks from the given queue and
 // returns the number of tasks moved.
 // If a queue with the given name doesn't exist, it returns QueueNotFoundError.
-func (r *RDB) ArchiveAllPendingTasks(qname string) (int64, error) {
+func (r *RDB) ArchiveAllPendingTasks(queueName string) (int64, error) {
 	var op errors.Op = "rdb.ArchiveAllPendingTasks"
-	if err := r.checkQueueExists(qname); err != nil {
+	if err := r.checkQueueExists(queueName); err != nil {
 		return 0, errors.E(op, errors.CanonicalCode(err), err)
 	}
 	keys := []string{
-		base.PendingKey(qname),
-		base.ArchivedKey(qname),
+		base.PendingKey(queueName),
+		base.ArchivedKey(queueName),
 	}
 	now := r.clock.Now()
 	argv := []interface{}{
 		now.Unix(),
 		now.AddDate(0, 0, -archivedExpirationInDays).Unix(),
 		maxArchiveSize,
-		base.TaskKeyPrefix(qname),
+		base.TaskKeyPrefix(queueName),
 	}
 	res, err := archiveAllPendingCmd.Run(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
@@ -1251,16 +1251,16 @@ func (r *RDB) ArchiveAllPendingTasks(qname string) (int64, error) {
 // archiveTaskCmd is a Lua script that archives a task given a task id.
 //
 // Input:
-// KEYS[1] -> task key (asynq:{<qname>}:t:<task_id>)
-// KEYS[2] -> archived key (asynq:{<qname>}:archived)
-// KEYS[3] -> all groups key (asynq:{<qname>}:groups)
+// KEYS[1] -> task key (asynq:{<queueName>}:t:<task_id>)
+// KEYS[2] -> archived key (asynq:{<queueName>}:archived)
+// KEYS[3] -> all groups key (asynq:{<queueName>}:groups)
 // --
 // ARGV[1] -> id of the task to archive
 // ARGV[2] -> current timestamp
 // ARGV[3] -> cutoff timestamp (e.g., 90 days ago)
 // ARGV[4] -> max number of tasks in archived state (e.g., 100)
-// ARGV[5] -> queue key prefix (asynq:{<qname>}:)
-// ARGV[6] -> group key prefix (asynq:{<qname>}:g:)
+// ARGV[5] -> queue key prefix (asynq:{<queueName>}:)
+// ARGV[6] -> group key prefix (asynq:{<queueName>}:g:)
 //
 // Output:
 // Numeric code indicating the status:
@@ -1310,15 +1310,15 @@ return 1
 // If a task with the given id doesn't exist in the queue, it returns TaskNotFoundError
 // If a task is already archived, it returns TaskAlreadyArchivedError.
 // If a task is in active state it returns non-nil error with FailedPrecondition code.
-func (r *RDB) ArchiveTask(qname, id string) error {
+func (r *RDB) ArchiveTask(queueName, id string) error {
 	var op errors.Op = "rdb.ArchiveTask"
-	if err := r.checkQueueExists(qname); err != nil {
+	if err := r.checkQueueExists(queueName); err != nil {
 		return errors.E(op, errors.CanonicalCode(err), err)
 	}
 	keys := []string{
-		base.TaskKey(qname, id),
-		base.ArchivedKey(qname),
-		base.AllGroups(qname),
+		base.TaskKey(queueName, id),
+		base.ArchivedKey(queueName),
+		base.AllGroups(queueName),
 	}
 	now := r.clock.Now()
 	argv := []interface{}{
@@ -1326,8 +1326,8 @@ func (r *RDB) ArchiveTask(qname, id string) error {
 		now.Unix(),
 		now.AddDate(0, 0, -archivedExpirationInDays).Unix(),
 		maxArchiveSize,
-		base.QueueKeyPrefix(qname),
-		base.GroupKeyPrefix(qname),
+		base.QueueKeyPrefix(queueName),
+		base.GroupKeyPrefix(queueName),
 	}
 	res, err := archiveTaskCmd.Run(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
@@ -1341,13 +1341,13 @@ func (r *RDB) ArchiveTask(qname, id string) error {
 	case 1:
 		return nil
 	case 0:
-		return errors.E(op, errors.NotFound, &errors.TaskNotFoundError{Queue: qname, ID: id})
+		return errors.E(op, errors.NotFound, &errors.TaskNotFoundError{Queue: queueName, ID: id})
 	case -1:
-		return errors.E(op, errors.FailedPrecondition, &errors.TaskAlreadyArchivedError{Queue: qname, ID: id})
+		return errors.E(op, errors.FailedPrecondition, &errors.TaskAlreadyArchivedError{Queue: queueName, ID: id})
 	case -2:
 		return errors.E(op, errors.FailedPrecondition, "cannot archive task in active state. use CancelProcessing instead.")
 	case -3:
-		return errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: qname})
+		return errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: queueName})
 	default:
 		return errors.E(op, errors.Internal, fmt.Sprintf("unexpected return value from archiveTaskCmd script: %d", n))
 	}
@@ -1357,13 +1357,13 @@ func (r *RDB) ArchiveTask(qname, id string) error {
 // or retry state from the given queue.
 //
 // Input:
-// KEYS[1] -> ZSET to move task from (e.g., asynq:{<qname>}:retry)
-// KEYS[2] -> asynq:{<qname>}:archived
+// KEYS[1] -> ZSET to move task from (e.g., asynq:{<queueName>}:retry)
+// KEYS[2] -> asynq:{<queueName>}:archived
 // --
 // ARGV[1] -> current timestamp
 // ARGV[2] -> cutoff timestamp (e.g., 90 days ago)
 // ARGV[3] -> max number of tasks in archive (e.g., 100)
-// ARGV[4] -> task key prefix (asynq:{<qname>}:t:)
+// ARGV[4] -> task key prefix (asynq:{<queueName>}:t:)
 //
 // Output:
 // integer: number of tasks archived
@@ -1378,8 +1378,8 @@ redis.call("ZREMRANGEBYRANK", KEYS[2], 0, -ARGV[3])
 redis.call("DEL", KEYS[1])
 return table.getn(ids)`)
 
-func (r *RDB) archiveAll(src, dst, qname string) (int64, error) {
-	if err := r.checkQueueExists(qname); err != nil {
+func (r *RDB) archiveAll(src, dst, queueName string) (int64, error) {
+	if err := r.checkQueueExists(queueName); err != nil {
 		return 0, err
 	}
 	keys := []string{
@@ -1391,8 +1391,8 @@ func (r *RDB) archiveAll(src, dst, qname string) (int64, error) {
 		now.Unix(),
 		now.AddDate(0, 0, -archivedExpirationInDays).Unix(),
 		maxArchiveSize,
-		base.TaskKeyPrefix(qname),
-		qname,
+		base.TaskKeyPrefix(queueName),
+		queueName,
 	}
 	res, err := archiveAllCmd.Run(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
@@ -1403,14 +1403,14 @@ func (r *RDB) archiveAll(src, dst, qname string) (int64, error) {
 		return 0, fmt.Errorf("unexpected return value from script: %v", res)
 	}
 	if n == -1 {
-		return 0, &errors.QueueNotFoundError{Queue: qname}
+		return 0, &errors.QueueNotFoundError{Queue: queueName}
 	}
 	return n, nil
 }
 
 // Input:
-// KEYS[1] -> asynq:{<qname>}:t:<task_id>
-// KEYS[2] -> asynq:{<qname>}:groups
+// KEYS[1] -> asynq:{<queueName>}:t:<task_id>
+// KEYS[2] -> asynq:{<queueName>}:groups
 // --
 // ARGV[1] -> task ID
 // ARGV[2] -> queue key prefix
@@ -1458,19 +1458,19 @@ return redis.call("DEL", KEYS[1])
 // If a queue with the given name doesn't exist, it returns QueueNotFoundError.
 // If a task with the given id doesn't exist in the queue, it returns TaskNotFoundError
 // If a task is in active state it returns non-nil error with Code FailedPrecondition.
-func (r *RDB) DeleteTask(qname, id string) error {
+func (r *RDB) DeleteTask(queueName, id string) error {
 	var op errors.Op = "rdb.DeleteTask"
-	if err := r.checkQueueExists(qname); err != nil {
+	if err := r.checkQueueExists(queueName); err != nil {
 		return errors.E(op, errors.CanonicalCode(err), err)
 	}
 	keys := []string{
-		base.TaskKey(qname, id),
-		base.AllGroups(qname),
+		base.TaskKey(queueName, id),
+		base.AllGroups(queueName),
 	}
 	argv := []interface{}{
 		id,
-		base.QueueKeyPrefix(qname),
-		base.GroupKeyPrefix(qname),
+		base.QueueKeyPrefix(queueName),
+		base.GroupKeyPrefix(queueName),
 	}
 	res, err := deleteTaskCmd.Run(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
@@ -1484,7 +1484,7 @@ func (r *RDB) DeleteTask(qname, id string) error {
 	case 1:
 		return nil
 	case 0:
-		return errors.E(op, errors.NotFound, &errors.TaskNotFoundError{Queue: qname, ID: id})
+		return errors.E(op, errors.NotFound, &errors.TaskNotFoundError{Queue: queueName, ID: id})
 	case -1:
 		return errors.E(op, errors.FailedPrecondition, "cannot delete task in active state. use CancelProcessing instead.")
 	default:
@@ -1494,9 +1494,9 @@ func (r *RDB) DeleteTask(qname, id string) error {
 
 // DeleteAllArchivedTasks deletes all archived tasks from the given queue
 // and returns the number of tasks deleted.
-func (r *RDB) DeleteAllArchivedTasks(qname string) (int64, error) {
+func (r *RDB) DeleteAllArchivedTasks(queueName string) (int64, error) {
 	var op errors.Op = "rdb.DeleteAllArchivedTasks"
-	n, err := r.deleteAll(base.ArchivedKey(qname), qname)
+	n, err := r.deleteAll(base.ArchivedKey(queueName), queueName)
 	if errors.IsQueueNotFound(err) {
 		return 0, errors.E(op, errors.NotFound, err)
 	}
@@ -1508,9 +1508,9 @@ func (r *RDB) DeleteAllArchivedTasks(qname string) (int64, error) {
 
 // DeleteAllRetryTasks deletes all retry tasks from the given queue
 // and returns the number of tasks deleted.
-func (r *RDB) DeleteAllRetryTasks(qname string) (int64, error) {
+func (r *RDB) DeleteAllRetryTasks(queueName string) (int64, error) {
 	var op errors.Op = "rdb.DeleteAllRetryTasks"
-	n, err := r.deleteAll(base.RetryKey(qname), qname)
+	n, err := r.deleteAll(base.RetryKey(queueName), queueName)
 	if errors.IsQueueNotFound(err) {
 		return 0, errors.E(op, errors.NotFound, err)
 	}
@@ -1522,9 +1522,9 @@ func (r *RDB) DeleteAllRetryTasks(qname string) (int64, error) {
 
 // DeleteAllScheduledTasks deletes all scheduled tasks from the given queue
 // and returns the number of tasks deleted.
-func (r *RDB) DeleteAllScheduledTasks(qname string) (int64, error) {
+func (r *RDB) DeleteAllScheduledTasks(queueName string) (int64, error) {
 	var op errors.Op = "rdb.DeleteAllScheduledTasks"
-	n, err := r.deleteAll(base.ScheduledKey(qname), qname)
+	n, err := r.deleteAll(base.ScheduledKey(queueName), queueName)
 	if errors.IsQueueNotFound(err) {
 		return 0, errors.E(op, errors.NotFound, err)
 	}
@@ -1536,9 +1536,9 @@ func (r *RDB) DeleteAllScheduledTasks(qname string) (int64, error) {
 
 // DeleteAllCompletedTasks deletes all completed tasks from the given queue
 // and returns the number of tasks deleted.
-func (r *RDB) DeleteAllCompletedTasks(qname string) (int64, error) {
+func (r *RDB) DeleteAllCompletedTasks(queueName string) (int64, error) {
 	var op errors.Op = "rdb.DeleteAllCompletedTasks"
-	n, err := r.deleteAll(base.CompletedKey(qname), qname)
+	n, err := r.deleteAll(base.CompletedKey(queueName), queueName)
 	if errors.IsQueueNotFound(err) {
 		return 0, errors.E(op, errors.NotFound, err)
 	}
@@ -1570,13 +1570,13 @@ end
 redis.call("DEL", KEYS[1])
 return table.getn(ids)`)
 
-func (r *RDB) deleteAll(key, qname string) (int64, error) {
-	if err := r.checkQueueExists(qname); err != nil {
+func (r *RDB) deleteAll(key, queueName string) (int64, error) {
+	if err := r.checkQueueExists(queueName); err != nil {
 		return 0, err
 	}
 	argv := []interface{}{
-		base.TaskKeyPrefix(qname),
-		qname,
+		base.TaskKeyPrefix(queueName),
+		queueName,
 	}
 	res, err := deleteAllCmd.Run(context.Background(), r.client, []string{key}, argv...).Result()
 	if err != nil {
@@ -1592,8 +1592,8 @@ func (r *RDB) deleteAll(key, qname string) (int64, error) {
 // deleteAllAggregatingCmd deletes all tasks from the given group.
 //
 // Input:
-// KEYS[1] -> asynq:{<qname>}:g:<gname>
-// KEYS[2] -> asynq:{<qname>}:groups
+// KEYS[1] -> asynq:{<queueName>}:g:<gname>
+// KEYS[2] -> asynq:{<queueName>}:groups
 // -------
 // ARGV[1] -> task key prefix
 // ARGV[2] -> group name
@@ -1609,17 +1609,17 @@ return table.getn(ids)
 
 // DeleteAllAggregatingTasks deletes all aggregating tasks from the given group
 // and returns the number of tasks deleted.
-func (r *RDB) DeleteAllAggregatingTasks(qname, gname string) (int64, error) {
+func (r *RDB) DeleteAllAggregatingTasks(queueName, gname string) (int64, error) {
 	var op errors.Op = "rdb.DeleteAllAggregatingTasks"
-	if err := r.checkQueueExists(qname); err != nil {
+	if err := r.checkQueueExists(queueName); err != nil {
 		return 0, errors.E(op, errors.CanonicalCode(err), err)
 	}
 	keys := []string{
-		base.GroupKey(qname, gname),
-		base.AllGroups(qname),
+		base.GroupKey(queueName, gname),
+		base.AllGroups(queueName),
 	}
 	argv := []interface{}{
-		base.TaskKeyPrefix(qname),
+		base.TaskKeyPrefix(queueName),
 		gname,
 	}
 	res, err := deleteAllAggregatingCmd.Run(context.Background(), r.client, keys, argv...).Result()
@@ -1636,7 +1636,7 @@ func (r *RDB) DeleteAllAggregatingTasks(qname, gname string) (int64, error) {
 // deleteAllPendingCmd deletes all pending tasks from the given queue.
 //
 // Input:
-// KEYS[1] -> asynq:{<qname>}:pending
+// KEYS[1] -> asynq:{<queueName>}:pending
 // --
 // ARGV[1] -> task key prefix
 //
@@ -1652,16 +1652,16 @@ return table.getn(ids)`)
 
 // DeleteAllPendingTasks deletes all pending tasks from the given queue
 // and returns the number of tasks deleted.
-func (r *RDB) DeleteAllPendingTasks(qname string) (int64, error) {
+func (r *RDB) DeleteAllPendingTasks(queueName string) (int64, error) {
 	var op errors.Op = "rdb.DeleteAllPendingTasks"
-	if err := r.checkQueueExists(qname); err != nil {
+	if err := r.checkQueueExists(queueName); err != nil {
 		return 0, errors.E(op, errors.CanonicalCode(err), err)
 	}
 	keys := []string{
-		base.PendingKey(qname),
+		base.PendingKey(queueName),
 	}
 	argv := []interface{}{
-		base.TaskKeyPrefix(qname),
+		base.TaskKeyPrefix(queueName),
 	}
 	res, err := deleteAllPendingCmd.Run(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
@@ -1679,12 +1679,12 @@ func (r *RDB) DeleteAllPendingTasks(qname string) (int64, error) {
 // It only check whether active queue is empty before removing.
 //
 // Input:
-// KEYS[1] -> asynq:{<qname>}
-// KEYS[2] -> asynq:{<qname>}:active
-// KEYS[3] -> asynq:{<qname>}:scheduled
-// KEYS[4] -> asynq:{<qname>}:retry
-// KEYS[5] -> asynq:{<qname>}:archived
-// KEYS[6] -> asynq:{<qname>}:lease
+// KEYS[1] -> asynq:{<queueName>}
+// KEYS[2] -> asynq:{<queueName>}:active
+// KEYS[3] -> asynq:{<queueName>}:scheduled
+// KEYS[4] -> asynq:{<queueName>}:retry
+// KEYS[5] -> asynq:{<queueName>}:archived
+// KEYS[6] -> asynq:{<queueName>}:lease
 // --
 // ARGV[1] -> task key prefix
 //
@@ -1739,12 +1739,12 @@ return 1`)
 // It checks whether queue is empty before removing.
 //
 // Input:
-// KEYS[1] -> asynq:{<qname>}:pending
-// KEYS[2] -> asynq:{<qname>}:active
-// KEYS[3] -> asynq:{<qname>}:scheduled
-// KEYS[4] -> asynq:{<qname>}:retry
-// KEYS[5] -> asynq:{<qname>}:archived
-// KEYS[6] -> asynq:{<qname>}:lease
+// KEYS[1] -> asynq:{<queueName>}:pending
+// KEYS[2] -> asynq:{<queueName>}:active
+// KEYS[3] -> asynq:{<queueName>}:scheduled
+// KEYS[4] -> asynq:{<queueName>}:retry
+// KEYS[5] -> asynq:{<queueName>}:archived
+// KEYS[6] -> asynq:{<queueName>}:lease
 // --
 // ARGV[1] -> task key prefix
 //
@@ -1792,14 +1792,14 @@ return 1`)
 // as long as no tasks are active for the queue.
 // If force is set to false, it will only remove the queue if
 // the queue is empty.
-func (r *RDB) RemoveQueue(qname string, force bool) error {
+func (r *RDB) RemoveQueue(queueName string, force bool) error {
 	var op errors.Op = "rdb.RemoveQueue"
-	exists, err := r.queueExists(qname)
+	exists, err := r.queueExists(queueName)
 	if err != nil {
 		return err
 	}
 	if !exists {
-		return errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: qname})
+		return errors.E(op, errors.NotFound, &errors.QueueNotFoundError{Queue: queueName})
 	}
 	var script *redis.Script
 	if force {
@@ -1808,14 +1808,14 @@ func (r *RDB) RemoveQueue(qname string, force bool) error {
 		script = removeQueueCmd
 	}
 	keys := []string{
-		base.PendingKey(qname),
-		base.ActiveKey(qname),
-		base.ScheduledKey(qname),
-		base.RetryKey(qname),
-		base.ArchivedKey(qname),
-		base.LeaseKey(qname),
+		base.PendingKey(queueName),
+		base.ActiveKey(queueName),
+		base.ScheduledKey(queueName),
+		base.RetryKey(queueName),
+		base.ArchivedKey(queueName),
+		base.LeaseKey(queueName),
 	}
-	res, err := script.Run(context.Background(), r.client, keys, base.TaskKeyPrefix(qname)).Result()
+	res, err := script.Run(context.Background(), r.client, keys, base.TaskKeyPrefix(queueName)).Result()
 	if err != nil {
 		return errors.E(op, errors.Unknown, err)
 	}
@@ -1825,12 +1825,12 @@ func (r *RDB) RemoveQueue(qname string, force bool) error {
 	}
 	switch n {
 	case 1:
-		if err := r.client.SRem(context.Background(), base.AllQueues, qname).Err(); err != nil {
+		if err := r.client.SRem(context.Background(), base.AllQueues, queueName).Err(); err != nil {
 			return errors.E(op, errors.Unknown, err)
 		}
 		return nil
 	case -1:
-		return errors.E(op, errors.NotFound, &errors.QueueNotEmptyError{Queue: qname})
+		return errors.E(op, errors.NotFound, &errors.QueueNotEmptyError{Queue: queueName})
 	case -2:
 		return errors.E(op, errors.FailedPrecondition, "cannot remove queue with active tasks")
 	default:
@@ -1965,40 +1965,40 @@ func (r *RDB) ListSchedulerEnqueueEvents(entryID string, pgn Pagination) ([]*bas
 }
 
 // Pause pauses processing of tasks from the given queue.
-func (r *RDB) Pause(qname string) error {
-	key := base.PausedKey(qname)
+func (r *RDB) Pause(queueName string) error {
+	key := base.PausedKey(queueName)
 	ok, err := r.client.SetNX(context.Background(), key, r.clock.Now().Unix(), 0).Result()
 	if err != nil {
 		return err
 	}
 	if !ok {
-		return fmt.Errorf("queue %q is already paused", qname)
+		return fmt.Errorf("queue %q is already paused", queueName)
 	}
 	return nil
 }
 
 // Unpause resumes processing of tasks from the given queue.
-func (r *RDB) Unpause(qname string) error {
-	key := base.PausedKey(qname)
+func (r *RDB) Unpause(queueName string) error {
+	key := base.PausedKey(queueName)
 	deleted, err := r.client.Del(context.Background(), key).Result()
 	if err != nil {
 		return err
 	}
 	if deleted == 0 {
-		return fmt.Errorf("queue %q is not paused", qname)
+		return fmt.Errorf("queue %q is not paused", queueName)
 	}
 	return nil
 }
 
 // ClusterKeySlot returns an integer identifying the hash slot the given queue hashes to.
-func (r *RDB) ClusterKeySlot(qname string) (int64, error) {
-	key := base.PendingKey(qname)
+func (r *RDB) ClusterKeySlot(queueName string) (int64, error) {
+	key := base.PendingKey(queueName)
 	return r.client.ClusterKeySlot(context.Background(), key).Result()
 }
 
 // ClusterNodes returns a list of nodes the given queue belongs to.
-func (r *RDB) ClusterNodes(qname string) ([]redis.ClusterNode, error) {
-	keyslot, err := r.ClusterKeySlot(qname)
+func (r *RDB) ClusterNodes(queueName string) ([]redis.ClusterNode, error) {
+	keyslot, err := r.ClusterKeySlot(queueName)
 	if err != nil {
 		return nil, err
 	}

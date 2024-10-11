@@ -219,10 +219,10 @@ func (p *processor) exec() {
 					msg.Type,
 					msg.Payload,
 					&ResultWriter{
-						id:     msg.ID,
-						qname:  msg.Queue,
-						broker: p.broker,
-						ctx:    ctx,
+						id:        msg.ID,
+						queueName: msg.Queue,
+						broker:    p.broker,
+						ctx:       ctx,
 					},
 				)
 				resCh <- p.perform(ctx, task)
@@ -387,17 +387,17 @@ func (p *processor) queues() []string {
 	// skip the overhead of generating a list of queue names
 	// if we are processing one queue.
 	if len(p.queueConfig) == 1 {
-		for qname := range p.queueConfig {
-			return []string{qname}
+		for queueName := range p.queueConfig {
+			return []string{queueName}
 		}
 	}
 	if p.orderedQueues != nil {
 		return p.orderedQueues
 	}
 	var names []string
-	for qname, priority := range p.queueConfig {
+	for queueName, priority := range p.queueConfig {
 		for i := 0; i < priority; i++ {
-			names = append(names, qname)
+			names = append(names, queueName)
 		}
 	}
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -454,8 +454,8 @@ func uniq(names []string, l int) []string {
 // their priority level in descending order.
 func sortByPriority(qcfg map[string]int) []string {
 	var queues []*queue
-	for qname, n := range qcfg {
-		queues = append(queues, &queue{qname, n})
+	for queueName, n := range qcfg {
+		queues = append(queues, &queue{queueName, n})
 	}
 	sort.Sort(sort.Reverse(byPriority(queues)))
 	var res []string

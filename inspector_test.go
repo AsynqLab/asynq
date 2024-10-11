@@ -34,8 +34,8 @@ func TestInspectorQueues(t *testing.T) {
 
 	for _, tc := range tests {
 		h.FlushDB(t, r)
-		for _, qname := range tc.queues {
-			if err := r.SAdd(context.Background(), base.AllQueues, qname).Err(); err != nil {
+		for _, queueName := range tc.queues {
+			if err := r.SAdd(context.Background(), base.AllQueues, queueName).Err(); err != nil {
 				t.Fatalf("could not initialize all queue set: %v", err)
 			}
 		}
@@ -66,7 +66,7 @@ func TestInspectorDeleteQueue(t *testing.T) {
 		scheduled map[string][]base.Z
 		retry     map[string][]base.Z
 		archived  map[string][]base.Z
-		qname     string // queue to remove
+		queueName string // queue to remove
 		force     bool
 	}{
 		{
@@ -90,8 +90,8 @@ func TestInspectorDeleteQueue(t *testing.T) {
 				"default": {},
 				"custom":  {},
 			},
-			qname: "custom",
-			force: false,
+			queueName: "custom",
+			force:     false,
 		},
 		{
 			pending: map[string][]*base.TaskMessage{
@@ -114,8 +114,8 @@ func TestInspectorDeleteQueue(t *testing.T) {
 				"default": {},
 				"custom":  {},
 			},
-			qname: "custom",
-			force: true, // allow removing non-empty queue
+			queueName: "custom",
+			force:     true, // allow removing non-empty queue
 		},
 	}
 
@@ -127,14 +127,14 @@ func TestInspectorDeleteQueue(t *testing.T) {
 		h.SeedAllRetryQueues(t, r, tc.retry)
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 
-		err := inspector.DeleteQueue(tc.qname, tc.force)
+		err := inspector.DeleteQueue(tc.queueName, tc.force)
 		if err != nil {
 			t.Errorf("DeleteQueue(%q, %t) = %v, want nil",
-				tc.qname, tc.force, err)
+				tc.queueName, tc.force, err)
 			continue
 		}
-		if r.SIsMember(context.Background(), base.AllQueues, tc.qname).Val() {
-			t.Errorf("%q is a member of %q", tc.qname, base.AllQueues)
+		if r.SIsMember(context.Background(), base.AllQueues, tc.queueName).Val() {
+			t.Errorf("%q is a member of %q", tc.queueName, base.AllQueues)
 		}
 	}
 }
@@ -155,7 +155,7 @@ func TestInspectorDeleteQueueErrorQueueNotEmpty(t *testing.T) {
 		scheduled map[string][]base.Z
 		retry     map[string][]base.Z
 		archived  map[string][]base.Z
-		qname     string // queue to remove
+		queueName string // queue to remove
 		force     bool
 	}{
 		{
@@ -174,8 +174,8 @@ func TestInspectorDeleteQueueErrorQueueNotEmpty(t *testing.T) {
 			archived: map[string][]base.Z{
 				"default": {},
 			},
-			qname: "default",
-			force: false,
+			queueName: "default",
+			force:     false,
 		},
 	}
 
@@ -187,10 +187,10 @@ func TestInspectorDeleteQueueErrorQueueNotEmpty(t *testing.T) {
 		h.SeedAllRetryQueues(t, r, tc.retry)
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 
-		err := inspector.DeleteQueue(tc.qname, tc.force)
+		err := inspector.DeleteQueue(tc.queueName, tc.force)
 		if !errors.Is(err, ErrQueueNotEmpty) {
 			t.Errorf("DeleteQueue(%v, %t) did not return ErrQueueNotEmpty",
-				tc.qname, tc.force)
+				tc.queueName, tc.force)
 		}
 	}
 }
@@ -211,7 +211,7 @@ func TestInspectorDeleteQueueErrorQueueNotFound(t *testing.T) {
 		scheduled map[string][]base.Z
 		retry     map[string][]base.Z
 		archived  map[string][]base.Z
-		qname     string // queue to remove
+		queueName string // queue to remove
 		force     bool
 	}{
 		{
@@ -230,8 +230,8 @@ func TestInspectorDeleteQueueErrorQueueNotFound(t *testing.T) {
 			archived: map[string][]base.Z{
 				"default": {},
 			},
-			qname: "nonexistent",
-			force: false,
+			queueName: "nonexistent",
+			force:     false,
 		},
 	}
 
@@ -243,10 +243,10 @@ func TestInspectorDeleteQueueErrorQueueNotFound(t *testing.T) {
 		h.SeedAllRetryQueues(t, r, tc.retry)
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 
-		err := inspector.DeleteQueue(tc.qname, tc.force)
+		err := inspector.DeleteQueue(tc.queueName, tc.force)
 		if !errors.Is(err, ErrQueueNotFound) {
 			t.Errorf("DeleteQueue(%v, %t) did not return ErrQueueNotFound",
-				tc.qname, tc.force)
+				tc.queueName, tc.force)
 		}
 	}
 }
@@ -279,7 +279,7 @@ func TestInspectorGetQueueInfo(t *testing.T) {
 		processedTotal                  map[string]int
 		failedTotal                     map[string]int
 		oldestPendingMessageEnqueueTime map[string]time.Time
-		qname                           string
+		queueName                       string
 		want                            *QueueInfo
 	}{
 		{
@@ -341,7 +341,7 @@ func TestInspectorGetQueueInfo(t *testing.T) {
 				"critical": now.Add(-200 * time.Millisecond),
 				"low":      now.Add(-30 * time.Second),
 			},
-			qname: "default",
+			queueName: "default",
 			want: &QueueInfo{
 				Queue:          "default",
 				Latency:        15 * time.Second,
@@ -371,35 +371,35 @@ func TestInspectorGetQueueInfo(t *testing.T) {
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 		h.SeedAllCompletedQueues(t, r, tc.completed)
 		ctx := context.Background()
-		for qname, n := range tc.processed {
-			r.Set(ctx, base.ProcessedKey(qname, now), n, 0)
+		for queueName, n := range tc.processed {
+			r.Set(ctx, base.ProcessedKey(queueName, now), n, 0)
 		}
-		for qname, n := range tc.failed {
-			r.Set(ctx, base.FailedKey(qname, now), n, 0)
+		for queueName, n := range tc.failed {
+			r.Set(ctx, base.FailedKey(queueName, now), n, 0)
 		}
-		for qname, n := range tc.processedTotal {
-			r.Set(ctx, base.ProcessedTotalKey(qname), n, 0)
+		for queueName, n := range tc.processedTotal {
+			r.Set(ctx, base.ProcessedTotalKey(queueName), n, 0)
 		}
-		for qname, n := range tc.failedTotal {
-			r.Set(ctx, base.FailedTotalKey(qname), n, 0)
+		for queueName, n := range tc.failedTotal {
+			r.Set(ctx, base.FailedTotalKey(queueName), n, 0)
 		}
-		for qname, enqueueTime := range tc.oldestPendingMessageEnqueueTime {
+		for queueName, enqueueTime := range tc.oldestPendingMessageEnqueueTime {
 			if enqueueTime.IsZero() {
 				continue
 			}
-			oldestPendingMessageID := r.LRange(ctx, base.PendingKey(qname), -1, -1).Val()[0] // get the right most msg in the list
-			r.HSet(ctx, base.TaskKey(qname, oldestPendingMessageID), "pending_since", enqueueTime.UnixNano())
+			oldestPendingMessageID := r.LRange(ctx, base.PendingKey(queueName), -1, -1).Val()[0] // get the right most msg in the list
+			r.HSet(ctx, base.TaskKey(queueName, oldestPendingMessageID), "pending_since", enqueueTime.UnixNano())
 		}
 
-		got, err := inspector.GetQueueInfo(tc.qname)
+		got, err := inspector.GetQueueInfo(tc.queueName)
 		if err != nil {
 			t.Errorf("r.GetQueueInfo(%q) = %v, %v, want %v, nil",
-				tc.qname, got, err, tc.want)
+				tc.queueName, got, err, tc.want)
 			continue
 		}
 		if diff := cmp.Diff(tc.want, got, timeCmpOpt, ignoreMemUsg); diff != "" {
 			t.Errorf("r.GetQueueInfo(%q) = %v, %v, want %v, nil; (-want, +got)\n%s",
-				tc.qname, got, err, tc.want, diff)
+				tc.queueName, got, err, tc.want, diff)
 			continue
 		}
 	}
@@ -412,8 +412,8 @@ func TestInspectorHistory(t *testing.T) {
 	inspector := NewInspector(getRedisConnOpt(t))
 
 	tests := []struct {
-		qname string // queue of interest
-		n     int    // number of days
+		queueName string // queue of interest
+		n         int    // number of days
 	}{
 		{"default", 90},
 		{"custom", 7},
@@ -423,29 +423,29 @@ func TestInspectorHistory(t *testing.T) {
 	for _, tc := range tests {
 		h.FlushDB(t, r)
 
-		r.SAdd(context.Background(), base.AllQueues, tc.qname)
+		r.SAdd(context.Background(), base.AllQueues, tc.queueName)
 		// populate last n days data
 		for i := 0; i < tc.n; i++ {
 			ts := now.Add(-time.Duration(i) * 24 * time.Hour)
-			processedKey := base.ProcessedKey(tc.qname, ts)
-			failedKey := base.FailedKey(tc.qname, ts)
+			processedKey := base.ProcessedKey(tc.queueName, ts)
+			failedKey := base.FailedKey(tc.queueName, ts)
 			r.Set(context.Background(), processedKey, (i+1)*1000, 0)
 			r.Set(context.Background(), failedKey, (i+1)*10, 0)
 		}
 
-		got, err := inspector.History(tc.qname, tc.n)
+		got, err := inspector.History(tc.queueName, tc.n)
 		if err != nil {
-			t.Errorf("Inspector.History(%q, %d) returned error: %v", tc.qname, tc.n, err)
+			t.Errorf("Inspector.History(%q, %d) returned error: %v", tc.queueName, tc.n, err)
 			continue
 		}
 		if len(got) != tc.n {
 			t.Errorf("Inspector.History(%q, %d) returned %d daily stats, want %d",
-				tc.qname, tc.n, len(got), tc.n)
+				tc.queueName, tc.n, len(got), tc.n)
 			continue
 		}
 		for i := 0; i < tc.n; i++ {
 			want := &DailyStats{
-				Queue:     tc.qname,
+				Queue:     tc.queueName,
 				Processed: (i + 1) * 1000,
 				Failed:    (i + 1) * 10,
 				Date:      now.Add(-time.Duration(i) * 24 * time.Hour),
@@ -515,13 +515,13 @@ func TestInspectorGetTaskInfo(t *testing.T) {
 	h.SeedAllArchivedQueues(t, r, fixtures.archived)
 
 	tests := []struct {
-		qname string
-		id    string
-		want  *TaskInfo
+		queueName string
+		id        string
+		want      *TaskInfo
 	}{
 		{
-			qname: "default",
-			id:    m1.ID,
+			queueName: "default",
+			id:        m1.ID,
 			want: newTaskInfo(
 				m1,
 				base.TaskStateActive,
@@ -530,8 +530,8 @@ func TestInspectorGetTaskInfo(t *testing.T) {
 			),
 		},
 		{
-			qname: "default",
-			id:    m2.ID,
+			queueName: "default",
+			id:        m2.ID,
 			want: newTaskInfo(
 				m2,
 				base.TaskStateScheduled,
@@ -540,8 +540,8 @@ func TestInspectorGetTaskInfo(t *testing.T) {
 			),
 		},
 		{
-			qname: "custom",
-			id:    m3.ID,
+			queueName: "custom",
+			id:        m3.ID,
 			want: newTaskInfo(
 				m3,
 				base.TaskStateRetry,
@@ -550,8 +550,8 @@ func TestInspectorGetTaskInfo(t *testing.T) {
 			),
 		},
 		{
-			qname: "custom",
-			id:    m4.ID,
+			queueName: "custom",
+			id:        m4.ID,
 			want: newTaskInfo(
 				m4,
 				base.TaskStateArchived,
@@ -560,8 +560,8 @@ func TestInspectorGetTaskInfo(t *testing.T) {
 			),
 		},
 		{
-			qname: "custom",
-			id:    m5.ID,
+			queueName: "custom",
+			id:        m5.ID,
 			want: newTaskInfo(
 				m5,
 				base.TaskStatePending,
@@ -573,9 +573,9 @@ func TestInspectorGetTaskInfo(t *testing.T) {
 
 	inspector := NewInspector(getRedisConnOpt(t))
 	for _, tc := range tests {
-		got, err := inspector.GetTaskInfo(tc.qname, tc.id)
+		got, err := inspector.GetTaskInfo(tc.queueName, tc.id)
 		if err != nil {
-			t.Errorf("GetTaskInfo(%q, %q) returned error: %v", tc.qname, tc.id, err)
+			t.Errorf("GetTaskInfo(%q, %q) returned error: %v", tc.queueName, tc.id, err)
 			continue
 		}
 		cmpOpts := []cmp.Option{
@@ -583,7 +583,7 @@ func TestInspectorGetTaskInfo(t *testing.T) {
 			cmpopts.EquateApproxTime(2 * time.Second),
 		}
 		if diff := cmp.Diff(tc.want, got, cmpOpts...); diff != "" {
-			t.Errorf("GetTaskInfo(%q, %q) = %v, want %v; (-want, +got)\n%s", tc.qname, tc.id, got, tc.want, diff)
+			t.Errorf("GetTaskInfo(%q, %q) = %v, want %v; (-want, +got)\n%s", tc.queueName, tc.id, got, tc.want, diff)
 		}
 	}
 }
@@ -639,31 +639,31 @@ func TestInspectorGetTaskInfoError(t *testing.T) {
 	h.SeedAllArchivedQueues(t, r, fixtures.archived)
 
 	tests := []struct {
-		qname   string
-		id      string
-		wantErr error
+		queueName string
+		id        string
+		wantErr   error
 	}{
 		{
-			qname:   "nonexistent",
-			id:      m1.ID,
-			wantErr: ErrQueueNotFound,
+			queueName: "nonexistent",
+			id:        m1.ID,
+			wantErr:   ErrQueueNotFound,
 		},
 		{
-			qname:   "default",
-			id:      uuid.NewString(),
-			wantErr: ErrTaskNotFound,
+			queueName: "default",
+			id:        uuid.NewString(),
+			wantErr:   ErrTaskNotFound,
 		},
 	}
 
 	inspector := NewInspector(getRedisConnOpt(t))
 
 	for _, tc := range tests {
-		info, err := inspector.GetTaskInfo(tc.qname, tc.id)
+		info, err := inspector.GetTaskInfo(tc.queueName, tc.id)
 		if info != nil {
-			t.Errorf("GetTaskInfo(%q, %q) returned info: %v", tc.qname, tc.id, info)
+			t.Errorf("GetTaskInfo(%q, %q) returned info: %v", tc.queueName, tc.id, info)
 		}
 		if !errors.Is(err, tc.wantErr) {
-			t.Errorf("GetTaskInfo(%q, %q) returned unexpected error: %v, want %v", tc.qname, tc.id, err, tc.wantErr)
+			t.Errorf("GetTaskInfo(%q, %q) returned unexpected error: %v, want %v", tc.queueName, tc.id, err, tc.wantErr)
 		}
 	}
 }
@@ -680,17 +680,17 @@ func TestInspectorListPendingTasks(t *testing.T) {
 	inspector := NewInspector(getRedisConnOpt(t))
 
 	tests := []struct {
-		desc    string
-		pending map[string][]*base.TaskMessage
-		qname   string
-		want    []*TaskInfo
+		desc      string
+		pending   map[string][]*base.TaskMessage
+		queueName string
+		want      []*TaskInfo
 	}{
 		{
 			desc: "with default queue",
 			pending: map[string][]*base.TaskMessage{
 				"default": {m1, m2},
 			},
-			qname: "default",
+			queueName: "default",
 			want: []*TaskInfo{
 				createPendingTask(m1),
 				createPendingTask(m2),
@@ -703,7 +703,7 @@ func TestInspectorListPendingTasks(t *testing.T) {
 				"critical": {m3},
 				"low":      {m4},
 			},
-			qname: "critical",
+			queueName: "critical",
 			want: []*TaskInfo{
 				createPendingTask(m3),
 			},
@@ -713,8 +713,8 @@ func TestInspectorListPendingTasks(t *testing.T) {
 			pending: map[string][]*base.TaskMessage{
 				"default": {},
 			},
-			qname: "default",
-			want:  []*TaskInfo(nil),
+			queueName: "default",
+			want:      []*TaskInfo(nil),
 		},
 	}
 
@@ -726,10 +726,10 @@ func TestInspectorListPendingTasks(t *testing.T) {
 			h.SeedPendingQueue(t, r, msgs, q)
 		}
 
-		got, err := inspector.ListPendingTasks(ctx, tc.qname)
+		got, err := inspector.ListPendingTasks(ctx, tc.queueName)
 		if err != nil {
 			t.Errorf("%s; ListPendingTasks(%q) returned error: %v",
-				tc.desc, tc.qname, err)
+				tc.desc, tc.queueName, err)
 			continue
 		}
 		cmpOpts := []cmp.Option{
@@ -738,7 +738,7 @@ func TestInspectorListPendingTasks(t *testing.T) {
 		}
 		if diff := cmp.Diff(tc.want, got, cmpOpts...); diff != "" {
 			t.Errorf("%s; ListPendingTasks(%q) = %v, want %v; (-want,+got)\n%s",
-				tc.desc, tc.qname, got, tc.want, diff)
+				tc.desc, tc.queueName, got, tc.want, diff)
 		}
 	}
 }
@@ -761,11 +761,11 @@ func TestInspectorListActiveTasks(t *testing.T) {
 	now := time.Now()
 
 	tests := []struct {
-		desc   string
-		active map[string][]*base.TaskMessage
-		lease  map[string][]base.Z
-		qname  string
-		want   []*TaskInfo
+		desc      string
+		active    map[string][]*base.TaskMessage
+		lease     map[string][]base.Z
+		queueName string
+		want      []*TaskInfo
 	}{
 		{
 			desc: "with a few active tasks",
@@ -783,7 +783,7 @@ func TestInspectorListActiveTasks(t *testing.T) {
 					{Message: m4, Score: now.Add(20 * time.Second).Unix()},
 				},
 			},
-			qname: "custom",
+			queueName: "custom",
 			want: []*TaskInfo{
 				newTaskInfo(m3, base.TaskStateActive, time.Time{}, nil),
 				newTaskInfo(m4, base.TaskStateActive, time.Time{}, nil),
@@ -805,7 +805,7 @@ func TestInspectorListActiveTasks(t *testing.T) {
 					{Message: m4, Score: now.Add(20 * time.Second).Unix()},
 				},
 			},
-			qname: "default",
+			queueName: "default",
 			want: []*TaskInfo{
 				newTaskInfo(m1, base.TaskStateActive, time.Time{}, nil),
 				newOrphanedTaskInfo(m2),
@@ -820,14 +820,14 @@ func TestInspectorListActiveTasks(t *testing.T) {
 		h.SeedAllActiveQueues(t, r, tc.active)
 		h.SeedAllLease(t, r, tc.lease)
 
-		got, err := inspector.ListActiveTasks(ctx, tc.qname)
+		got, err := inspector.ListActiveTasks(ctx, tc.queueName)
 		if err != nil {
-			t.Errorf("%s; ListActiveTasks(%q) returned error: %v", tc.qname, tc.desc, err)
+			t.Errorf("%s; ListActiveTasks(%q) returned error: %v", tc.queueName, tc.desc, err)
 			continue
 		}
 		if diff := cmp.Diff(tc.want, got, cmp.AllowUnexported(TaskInfo{})); diff != "" {
 			t.Errorf("%s; ListActiveTask(%q) = %v, want %v; (-want,+got)\n%s",
-				tc.desc, tc.qname, got, tc.want, diff)
+				tc.desc, tc.queueName, got, tc.want, diff)
 		}
 	}
 }
@@ -859,7 +859,7 @@ func TestInspectorListScheduledTasks(t *testing.T) {
 	tests := []struct {
 		desc      string
 		scheduled map[string][]base.Z
-		qname     string
+		queueName string
 		want      []*TaskInfo
 	}{
 		{
@@ -868,7 +868,7 @@ func TestInspectorListScheduledTasks(t *testing.T) {
 				"default": {z1, z2, z3},
 				"custom":  {z4},
 			},
-			qname: "default",
+			queueName: "default",
 			// Should be sorted by NextProcessAt.
 			want: []*TaskInfo{
 				createScheduledTask(z3),
@@ -881,8 +881,8 @@ func TestInspectorListScheduledTasks(t *testing.T) {
 			scheduled: map[string][]base.Z{
 				"default": {},
 			},
-			qname: "default",
-			want:  []*TaskInfo(nil),
+			queueName: "default",
+			want:      []*TaskInfo(nil),
 		},
 	}
 
@@ -892,14 +892,14 @@ func TestInspectorListScheduledTasks(t *testing.T) {
 		h.FlushDB(t, r)
 		h.SeedAllScheduledQueues(t, r, tc.scheduled)
 
-		got, err := inspector.ListScheduledTasks(ctx, tc.qname)
+		got, err := inspector.ListScheduledTasks(ctx, tc.queueName)
 		if err != nil {
-			t.Errorf("%s; ListScheduledTasks(%q) returned error: %v", tc.desc, tc.qname, err)
+			t.Errorf("%s; ListScheduledTasks(%q) returned error: %v", tc.desc, tc.queueName, err)
 			continue
 		}
 		if diff := cmp.Diff(tc.want, got, cmp.AllowUnexported(TaskInfo{})); diff != "" {
 			t.Errorf("%s; ListScheduledTask(%q) = %v, want %v; (-want,+got)\n%s",
-				tc.desc, tc.qname, got, tc.want, diff)
+				tc.desc, tc.queueName, got, tc.want, diff)
 		}
 	}
 }
@@ -929,10 +929,10 @@ func TestInspectorListRetryTasks(t *testing.T) {
 	inspector := NewInspector(getRedisConnOpt(t))
 
 	tests := []struct {
-		desc  string
-		retry map[string][]base.Z
-		qname string
-		want  []*TaskInfo
+		desc      string
+		retry     map[string][]base.Z
+		queueName string
+		want      []*TaskInfo
 	}{
 		{
 			desc: "with a few retry tasks",
@@ -940,7 +940,7 @@ func TestInspectorListRetryTasks(t *testing.T) {
 				"default": {z1, z2, z3},
 				"custom":  {z4},
 			},
-			qname: "default",
+			queueName: "default",
 			// Should be sorted by NextProcessAt.
 			want: []*TaskInfo{
 				createRetryTask(z3),
@@ -953,8 +953,8 @@ func TestInspectorListRetryTasks(t *testing.T) {
 			retry: map[string][]base.Z{
 				"default": {},
 			},
-			qname: "default",
-			want:  []*TaskInfo(nil),
+			queueName: "default",
+			want:      []*TaskInfo(nil),
 		},
 		// TODO(AsynqLab): ErrQueueNotFound when queue doesn't exist
 	}
@@ -965,14 +965,14 @@ func TestInspectorListRetryTasks(t *testing.T) {
 		h.FlushDB(t, r)
 		h.SeedAllRetryQueues(t, r, tc.retry)
 
-		got, err := inspector.ListRetryTasks(ctx, tc.qname)
+		got, err := inspector.ListRetryTasks(ctx, tc.queueName)
 		if err != nil {
-			t.Errorf("%s; ListRetryTasks(%q) returned error: %v", tc.desc, tc.qname, err)
+			t.Errorf("%s; ListRetryTasks(%q) returned error: %v", tc.desc, tc.queueName, err)
 			continue
 		}
 		if diff := cmp.Diff(tc.want, got, cmp.AllowUnexported(TaskInfo{})); diff != "" {
 			t.Errorf("%s; ListRetryTask(%q) = %v, want %v; (-want,+got)\n%s",
-				tc.desc, tc.qname, got, tc.want, diff)
+				tc.desc, tc.queueName, got, tc.want, diff)
 		}
 	}
 }
@@ -1002,10 +1002,10 @@ func TestInspectorListArchivedTasks(t *testing.T) {
 	inspector := NewInspector(getRedisConnOpt(t))
 
 	tests := []struct {
-		desc     string
-		archived map[string][]base.Z
-		qname    string
-		want     []*TaskInfo
+		desc      string
+		archived  map[string][]base.Z
+		queueName string
+		want      []*TaskInfo
 	}{
 		{
 			desc: "with a few archived tasks",
@@ -1013,7 +1013,7 @@ func TestInspectorListArchivedTasks(t *testing.T) {
 				"default": {z1, z2, z3},
 				"custom":  {z4},
 			},
-			qname: "default",
+			queueName: "default",
 			// Should be sorted by LastFailedAt.
 			want: []*TaskInfo{
 				createArchivedTask(z2),
@@ -1026,8 +1026,8 @@ func TestInspectorListArchivedTasks(t *testing.T) {
 			archived: map[string][]base.Z{
 				"default": {},
 			},
-			qname: "default",
-			want:  []*TaskInfo(nil),
+			queueName: "default",
+			want:      []*TaskInfo(nil),
 		},
 	}
 
@@ -1037,20 +1037,20 @@ func TestInspectorListArchivedTasks(t *testing.T) {
 		h.FlushDB(t, r)
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 
-		got, err := inspector.ListArchivedTasks(ctx, tc.qname)
+		got, err := inspector.ListArchivedTasks(ctx, tc.queueName)
 		if err != nil {
-			t.Errorf("%s; ListArchivedTasks(%q) returned error: %v", tc.desc, tc.qname, err)
+			t.Errorf("%s; ListArchivedTasks(%q) returned error: %v", tc.desc, tc.queueName, err)
 			continue
 		}
 		if diff := cmp.Diff(tc.want, got, cmp.AllowUnexported(TaskInfo{})); diff != "" {
 			t.Errorf("%s; ListArchivedTask(%q) = %v, want %v; (-want,+got)\n%s",
-				tc.desc, tc.qname, got, tc.want, diff)
+				tc.desc, tc.queueName, got, tc.want, diff)
 		}
 	}
 }
 
-func newCompletedTaskMessage(typename, qname string, retention time.Duration, completedAt time.Time) *base.TaskMessage {
-	msg := h.NewTaskMessageWithQueue(typename, nil, qname)
+func newCompletedTaskMessage(typename, queueName string, retention time.Duration, completedAt time.Time) *base.TaskMessage {
+	msg := h.NewTaskMessageWithQueue(typename, nil, queueName)
 	msg.Retention = int64(retention.Seconds())
 	msg.CompletedAt = completedAt.Unix()
 	return msg
@@ -1083,7 +1083,7 @@ func TestInspectorListCompletedTasks(t *testing.T) {
 	tests := []struct {
 		desc      string
 		completed map[string][]base.Z
-		qname     string
+		queueName string
 		want      []*TaskInfo
 	}{
 		{
@@ -1092,7 +1092,7 @@ func TestInspectorListCompletedTasks(t *testing.T) {
 				"default": {z1, z2, z3},
 				"custom":  {z4},
 			},
-			qname: "default",
+			queueName: "default",
 			// Should be sorted by expiration time (CompletedAt + Retention).
 			want: []*TaskInfo{
 				createCompletedTask(z2),
@@ -1105,8 +1105,8 @@ func TestInspectorListCompletedTasks(t *testing.T) {
 			completed: map[string][]base.Z{
 				"default": {},
 			},
-			qname: "default",
-			want:  []*TaskInfo(nil),
+			queueName: "default",
+			want:      []*TaskInfo(nil),
 		},
 	}
 
@@ -1116,14 +1116,14 @@ func TestInspectorListCompletedTasks(t *testing.T) {
 		h.FlushDB(t, r)
 		h.SeedAllCompletedQueues(t, r, tc.completed)
 
-		got, err := inspector.ListCompletedTasks(ctx, tc.qname)
+		got, err := inspector.ListCompletedTasks(ctx, tc.queueName)
 		if err != nil {
-			t.Errorf("%s; ListCompletedTasks(%q) returned error: %v", tc.desc, tc.qname, err)
+			t.Errorf("%s; ListCompletedTasks(%q) returned error: %v", tc.desc, tc.queueName, err)
 			continue
 		}
 		if diff := cmp.Diff(tc.want, got, cmp.AllowUnexported(TaskInfo{})); diff != "" {
 			t.Errorf("%s; ListCompletedTasks(%q) = %v, want %v; (-want,+got)\n%s",
-				tc.desc, tc.qname, got, tc.want, diff)
+				tc.desc, tc.queueName, got, tc.want, diff)
 		}
 	}
 }
@@ -1175,15 +1175,15 @@ func TestInspectorListAggregatingTasks(t *testing.T) {
 	}
 
 	tests := []struct {
-		desc  string
-		qname string
-		gname string
-		want  []*TaskInfo
+		desc      string
+		queueName string
+		gname     string
+		want      []*TaskInfo
 	}{
 		{
-			desc:  "default queue group1",
-			qname: "default",
-			gname: "group1",
+			desc:      "default queue group1",
+			queueName: "default",
+			gname:     "group1",
 			want: []*TaskInfo{
 				createAggregatingTaskInfo(m1),
 				createAggregatingTaskInfo(m2),
@@ -1191,9 +1191,9 @@ func TestInspectorListAggregatingTasks(t *testing.T) {
 			},
 		},
 		{
-			desc:  "custom queue group1",
-			qname: "custom",
-			gname: "group1",
+			desc:      "custom queue group1",
+			queueName: "custom",
+			gname:     "group1",
 			want: []*TaskInfo{
 				createAggregatingTaskInfo(m5),
 			},
@@ -1210,7 +1210,7 @@ func TestInspectorListAggregatingTasks(t *testing.T) {
 		h.SeedRedisZSets(t, r, fxt.groups)
 
 		t.Run(tc.desc, func(t *testing.T) {
-			got, err := inspector.ListAggregatingTasks(ctx, tc.qname, tc.gname)
+			got, err := inspector.ListAggregatingTasks(ctx, tc.queueName, tc.gname)
 			if err != nil {
 				t.Fatalf("ListAggregatingTasks returned error: %v", err)
 			}
@@ -1303,12 +1303,12 @@ func TestInspectorListTasksQueueNotFoundError(t *testing.T) {
 	inspector := NewInspector(getRedisConnOpt(t))
 
 	tests := []struct {
-		qname   string
-		wantErr error
+		queueName string
+		wantErr   error
 	}{
 		{
-			qname:   "nonexistent",
-			wantErr: ErrQueueNotFound,
+			queueName: "nonexistent",
+			wantErr:   ErrQueueNotFound,
 		},
 	}
 
@@ -1317,26 +1317,26 @@ func TestInspectorListTasksQueueNotFoundError(t *testing.T) {
 
 		h.FlushDB(t, r)
 
-		if _, err := inspector.ListActiveTasks(ctx, tc.qname); !errors.Is(err, tc.wantErr) {
-			t.Errorf("ListActiveTasks(%q) returned error %v, want %v", tc.qname, err, tc.wantErr)
+		if _, err := inspector.ListActiveTasks(ctx, tc.queueName); !errors.Is(err, tc.wantErr) {
+			t.Errorf("ListActiveTasks(%q) returned error %v, want %v", tc.queueName, err, tc.wantErr)
 		}
-		if _, err := inspector.ListPendingTasks(ctx, tc.qname); !errors.Is(err, tc.wantErr) {
-			t.Errorf("ListPendingTasks(%q) returned error %v, want %v", tc.qname, err, tc.wantErr)
+		if _, err := inspector.ListPendingTasks(ctx, tc.queueName); !errors.Is(err, tc.wantErr) {
+			t.Errorf("ListPendingTasks(%q) returned error %v, want %v", tc.queueName, err, tc.wantErr)
 		}
-		if _, err := inspector.ListScheduledTasks(ctx, tc.qname); !errors.Is(err, tc.wantErr) {
-			t.Errorf("ListScheduledTasks(%q) returned error %v, want %v", tc.qname, err, tc.wantErr)
+		if _, err := inspector.ListScheduledTasks(ctx, tc.queueName); !errors.Is(err, tc.wantErr) {
+			t.Errorf("ListScheduledTasks(%q) returned error %v, want %v", tc.queueName, err, tc.wantErr)
 		}
-		if _, err := inspector.ListRetryTasks(ctx, tc.qname); !errors.Is(err, tc.wantErr) {
-			t.Errorf("ListRetryTasks(%q) returned error %v, want %v", tc.qname, err, tc.wantErr)
+		if _, err := inspector.ListRetryTasks(ctx, tc.queueName); !errors.Is(err, tc.wantErr) {
+			t.Errorf("ListRetryTasks(%q) returned error %v, want %v", tc.queueName, err, tc.wantErr)
 		}
-		if _, err := inspector.ListArchivedTasks(ctx, tc.qname); !errors.Is(err, tc.wantErr) {
-			t.Errorf("ListArchivedTasks(%q) returned error %v, want %v", tc.qname, err, tc.wantErr)
+		if _, err := inspector.ListArchivedTasks(ctx, tc.queueName); !errors.Is(err, tc.wantErr) {
+			t.Errorf("ListArchivedTasks(%q) returned error %v, want %v", tc.queueName, err, tc.wantErr)
 		}
-		if _, err := inspector.ListCompletedTasks(ctx, tc.qname); !errors.Is(err, tc.wantErr) {
-			t.Errorf("ListCompletedTasks(%q) returned error %v, want %v", tc.qname, err, tc.wantErr)
+		if _, err := inspector.ListCompletedTasks(ctx, tc.queueName); !errors.Is(err, tc.wantErr) {
+			t.Errorf("ListCompletedTasks(%q) returned error %v, want %v", tc.queueName, err, tc.wantErr)
 		}
-		if _, err := inspector.ListAggregatingTasks(ctx, tc.qname, "mygroup"); !errors.Is(err, tc.wantErr) {
-			t.Errorf("ListAggregatingTasks(%q, \"mygroup\") returned error %v, want %v", tc.qname, err, tc.wantErr)
+		if _, err := inspector.ListAggregatingTasks(ctx, tc.queueName, "mygroup"); !errors.Is(err, tc.wantErr) {
+			t.Errorf("ListAggregatingTasks(%q, \"mygroup\") returned error %v, want %v", tc.queueName, err, tc.wantErr)
 		}
 	}
 }
@@ -1353,7 +1353,7 @@ func TestInspectorDeleteAllPendingTasks(t *testing.T) {
 
 	tests := []struct {
 		pending     map[string][]*base.TaskMessage
-		qname       string
+		queueName   string
 		want        int
 		wantPending map[string][]*base.TaskMessage
 	}{
@@ -1362,8 +1362,8 @@ func TestInspectorDeleteAllPendingTasks(t *testing.T) {
 				"default": {m1, m2, m3},
 				"custom":  {m4},
 			},
-			qname: "default",
-			want:  3,
+			queueName: "default",
+			want:      3,
 			wantPending: map[string][]*base.TaskMessage{
 				"default": {},
 				"custom":  {m4},
@@ -1374,8 +1374,8 @@ func TestInspectorDeleteAllPendingTasks(t *testing.T) {
 				"default": {m1, m2, m3},
 				"custom":  {m4},
 			},
-			qname: "custom",
-			want:  1,
+			queueName: "custom",
+			want:      1,
 			wantPending: map[string][]*base.TaskMessage{
 				"default": {m1, m2, m3},
 				"custom":  {},
@@ -1387,19 +1387,19 @@ func TestInspectorDeleteAllPendingTasks(t *testing.T) {
 		h.FlushDB(t, r)
 		h.SeedAllPendingQueues(t, r, tc.pending)
 
-		got, err := inspector.DeleteAllPendingTasks(tc.qname)
+		got, err := inspector.DeleteAllPendingTasks(tc.queueName)
 		if err != nil {
-			t.Errorf("DeleteAllPendingTasks(%q) returned error: %v", tc.qname, err)
+			t.Errorf("DeleteAllPendingTasks(%q) returned error: %v", tc.queueName, err)
 			continue
 		}
 		if got != tc.want {
-			t.Errorf("DeleteAllPendingTasks(%q) = %d, want %d", tc.qname, got, tc.want)
+			t.Errorf("DeleteAllPendingTasks(%q) = %d, want %d", tc.queueName, got, tc.want)
 		}
 
-		for qname, want := range tc.wantPending {
-			gotPending := h.GetPendingMessages(t, r, qname)
+		for queueName, want := range tc.wantPending {
+			gotPending := h.GetPendingMessages(t, r, queueName)
 			if diff := cmp.Diff(want, gotPending, h.SortMsgOpt); diff != "" {
-				t.Errorf("unexpected pending tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected pending tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
 	}
@@ -1422,7 +1422,7 @@ func TestInspectorDeleteAllScheduledTasks(t *testing.T) {
 
 	tests := []struct {
 		scheduled     map[string][]base.Z
-		qname         string
+		queueName     string
 		want          int
 		wantScheduled map[string][]base.Z
 	}{
@@ -1431,8 +1431,8 @@ func TestInspectorDeleteAllScheduledTasks(t *testing.T) {
 				"default": {z1, z2, z3},
 				"custom":  {z4},
 			},
-			qname: "default",
-			want:  3,
+			queueName: "default",
+			want:      3,
 			wantScheduled: map[string][]base.Z{
 				"default": {},
 				"custom":  {z4},
@@ -1442,8 +1442,8 @@ func TestInspectorDeleteAllScheduledTasks(t *testing.T) {
 			scheduled: map[string][]base.Z{
 				"default": {},
 			},
-			qname: "default",
-			want:  0,
+			queueName: "default",
+			want:      0,
 			wantScheduled: map[string][]base.Z{
 				"default": {},
 			},
@@ -1454,18 +1454,18 @@ func TestInspectorDeleteAllScheduledTasks(t *testing.T) {
 		h.FlushDB(t, r)
 		h.SeedAllScheduledQueues(t, r, tc.scheduled)
 
-		got, err := inspector.DeleteAllScheduledTasks(tc.qname)
+		got, err := inspector.DeleteAllScheduledTasks(tc.queueName)
 		if err != nil {
-			t.Errorf("DeleteAllScheduledTasks(%q) returned error: %v", tc.qname, err)
+			t.Errorf("DeleteAllScheduledTasks(%q) returned error: %v", tc.queueName, err)
 			continue
 		}
 		if got != tc.want {
-			t.Errorf("DeleteAllScheduledTasks(%q) = %d, want %d", tc.qname, got, tc.want)
+			t.Errorf("DeleteAllScheduledTasks(%q) = %d, want %d", tc.queueName, got, tc.want)
 		}
-		for qname, want := range tc.wantScheduled {
-			gotScheduled := h.GetScheduledEntries(t, r, qname)
+		for queueName, want := range tc.wantScheduled {
+			gotScheduled := h.GetScheduledEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotScheduled, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("unexpected scheduled tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected scheduled tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
 	}
@@ -1488,7 +1488,7 @@ func TestInspectorDeleteAllRetryTasks(t *testing.T) {
 
 	tests := []struct {
 		retry     map[string][]base.Z
-		qname     string
+		queueName string
 		want      int
 		wantRetry map[string][]base.Z
 	}{
@@ -1497,8 +1497,8 @@ func TestInspectorDeleteAllRetryTasks(t *testing.T) {
 				"default": {z1, z2, z3},
 				"custom":  {z4},
 			},
-			qname: "default",
-			want:  3,
+			queueName: "default",
+			want:      3,
 			wantRetry: map[string][]base.Z{
 				"default": {},
 				"custom":  {z4},
@@ -1508,8 +1508,8 @@ func TestInspectorDeleteAllRetryTasks(t *testing.T) {
 			retry: map[string][]base.Z{
 				"default": {},
 			},
-			qname: "default",
-			want:  0,
+			queueName: "default",
+			want:      0,
 			wantRetry: map[string][]base.Z{
 				"default": {},
 			},
@@ -1520,18 +1520,18 @@ func TestInspectorDeleteAllRetryTasks(t *testing.T) {
 		h.FlushDB(t, r)
 		h.SeedAllRetryQueues(t, r, tc.retry)
 
-		got, err := inspector.DeleteAllRetryTasks(tc.qname)
+		got, err := inspector.DeleteAllRetryTasks(tc.queueName)
 		if err != nil {
-			t.Errorf("DeleteAllRetryTasks(%q) returned error: %v", tc.qname, err)
+			t.Errorf("DeleteAllRetryTasks(%q) returned error: %v", tc.queueName, err)
 			continue
 		}
 		if got != tc.want {
-			t.Errorf("DeleteAllRetryTasks(%q) = %d, want %d", tc.qname, got, tc.want)
+			t.Errorf("DeleteAllRetryTasks(%q) = %d, want %d", tc.queueName, got, tc.want)
 		}
-		for qname, want := range tc.wantRetry {
-			gotRetry := h.GetRetryEntries(t, r, qname)
+		for queueName, want := range tc.wantRetry {
+			gotRetry := h.GetRetryEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotRetry, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("unexpected retry tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected retry tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
 	}
@@ -1554,7 +1554,7 @@ func TestInspectorDeleteAllArchivedTasks(t *testing.T) {
 
 	tests := []struct {
 		archived     map[string][]base.Z
-		qname        string
+		queueName    string
 		want         int
 		wantArchived map[string][]base.Z
 	}{
@@ -1563,8 +1563,8 @@ func TestInspectorDeleteAllArchivedTasks(t *testing.T) {
 				"default": {z1, z2, z3},
 				"custom":  {z4},
 			},
-			qname: "default",
-			want:  3,
+			queueName: "default",
+			want:      3,
 			wantArchived: map[string][]base.Z{
 				"default": {},
 				"custom":  {z4},
@@ -1574,8 +1574,8 @@ func TestInspectorDeleteAllArchivedTasks(t *testing.T) {
 			archived: map[string][]base.Z{
 				"default": {},
 			},
-			qname: "default",
-			want:  0,
+			queueName: "default",
+			want:      0,
 			wantArchived: map[string][]base.Z{
 				"default": {},
 			},
@@ -1586,18 +1586,18 @@ func TestInspectorDeleteAllArchivedTasks(t *testing.T) {
 		h.FlushDB(t, r)
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 
-		got, err := inspector.DeleteAllArchivedTasks(tc.qname)
+		got, err := inspector.DeleteAllArchivedTasks(tc.queueName)
 		if err != nil {
-			t.Errorf("DeleteAllArchivedTasks(%q) returned error: %v", tc.qname, err)
+			t.Errorf("DeleteAllArchivedTasks(%q) returned error: %v", tc.queueName, err)
 			continue
 		}
 		if got != tc.want {
-			t.Errorf("DeleteAllArchivedTasks(%q) = %d, want %d", tc.qname, got, tc.want)
+			t.Errorf("DeleteAllArchivedTasks(%q) = %d, want %d", tc.queueName, got, tc.want)
 		}
-		for qname, want := range tc.wantArchived {
-			gotArchived := h.GetArchivedEntries(t, r, qname)
+		for queueName, want := range tc.wantArchived {
+			gotArchived := h.GetArchivedEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotArchived, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
 	}
@@ -1620,7 +1620,7 @@ func TestInspectorDeleteAllCompletedTasks(t *testing.T) {
 
 	tests := []struct {
 		completed     map[string][]base.Z
-		qname         string
+		queueName     string
 		want          int
 		wantCompleted map[string][]base.Z
 	}{
@@ -1629,8 +1629,8 @@ func TestInspectorDeleteAllCompletedTasks(t *testing.T) {
 				"default": {z1, z2, z3},
 				"custom":  {z4},
 			},
-			qname: "default",
-			want:  3,
+			queueName: "default",
+			want:      3,
 			wantCompleted: map[string][]base.Z{
 				"default": {},
 				"custom":  {z4},
@@ -1640,8 +1640,8 @@ func TestInspectorDeleteAllCompletedTasks(t *testing.T) {
 			completed: map[string][]base.Z{
 				"default": {},
 			},
-			qname: "default",
-			want:  0,
+			queueName: "default",
+			want:      0,
 			wantCompleted: map[string][]base.Z{
 				"default": {},
 			},
@@ -1652,18 +1652,18 @@ func TestInspectorDeleteAllCompletedTasks(t *testing.T) {
 		h.FlushDB(t, r)
 		h.SeedAllCompletedQueues(t, r, tc.completed)
 
-		got, err := inspector.DeleteAllCompletedTasks(tc.qname)
+		got, err := inspector.DeleteAllCompletedTasks(tc.queueName)
 		if err != nil {
-			t.Errorf("DeleteAllCompletedTasks(%q) returned error: %v", tc.qname, err)
+			t.Errorf("DeleteAllCompletedTasks(%q) returned error: %v", tc.queueName, err)
 			continue
 		}
 		if got != tc.want {
-			t.Errorf("DeleteAllCompletedTasks(%q) = %d, want %d", tc.qname, got, tc.want)
+			t.Errorf("DeleteAllCompletedTasks(%q) = %d, want %d", tc.queueName, got, tc.want)
 		}
-		for qname, want := range tc.wantCompleted {
-			gotCompleted := h.GetCompletedEntries(t, r, qname)
+		for queueName, want := range tc.wantCompleted {
+			gotCompleted := h.GetCompletedEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotCompleted, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("unexpected completed tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected completed tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
 	}
@@ -1685,7 +1685,7 @@ func TestInspectorArchiveAllPendingTasks(t *testing.T) {
 	tests := []struct {
 		pending      map[string][]*base.TaskMessage
 		archived     map[string][]base.Z
-		qname        string
+		queueName    string
 		want         int
 		wantPending  map[string][]*base.TaskMessage
 		wantArchived map[string][]base.Z
@@ -1699,8 +1699,8 @@ func TestInspectorArchiveAllPendingTasks(t *testing.T) {
 				"default": {},
 				"custom":  {},
 			},
-			qname: "default",
-			want:  3,
+			queueName: "default",
+			want:      3,
 			wantPending: map[string][]*base.TaskMessage{
 				"default": {},
 				"custom":  {m4},
@@ -1721,8 +1721,8 @@ func TestInspectorArchiveAllPendingTasks(t *testing.T) {
 			archived: map[string][]base.Z{
 				"default": {},
 			},
-			qname: "default",
-			want:  0,
+			queueName: "default",
+			want:      0,
 			wantPending: map[string][]*base.TaskMessage{
 				"default": {},
 			},
@@ -1737,8 +1737,8 @@ func TestInspectorArchiveAllPendingTasks(t *testing.T) {
 			archived: map[string][]base.Z{
 				"default": {z1, z2},
 			},
-			qname: "default",
-			want:  1,
+			queueName: "default",
+			want:      1,
 			wantPending: map[string][]*base.TaskMessage{
 				"default": {},
 			},
@@ -1757,24 +1757,24 @@ func TestInspectorArchiveAllPendingTasks(t *testing.T) {
 		h.SeedAllPendingQueues(t, r, tc.pending)
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 
-		got, err := inspector.ArchiveAllPendingTasks(tc.qname)
+		got, err := inspector.ArchiveAllPendingTasks(tc.queueName)
 		if err != nil {
-			t.Errorf("ArchiveAllPendingTasks(%q) returned error: %v", tc.qname, err)
+			t.Errorf("ArchiveAllPendingTasks(%q) returned error: %v", tc.queueName, err)
 			continue
 		}
 		if got != tc.want {
-			t.Errorf("ArchiveAllPendingTasks(%q) = %d, want %d", tc.qname, got, tc.want)
+			t.Errorf("ArchiveAllPendingTasks(%q) = %d, want %d", tc.queueName, got, tc.want)
 		}
-		for qname, want := range tc.wantPending {
-			gotPending := h.GetPendingMessages(t, r, qname)
+		for queueName, want := range tc.wantPending {
+			gotPending := h.GetPendingMessages(t, r, queueName)
 			if diff := cmp.Diff(want, gotPending, h.SortMsgOpt); diff != "" {
-				t.Errorf("unexpected pending tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected pending tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
-		for qname, want := range tc.wantArchived {
-			gotArchived := h.GetArchivedEntries(t, r, qname)
+		for queueName, want := range tc.wantArchived {
+			gotArchived := h.GetArchivedEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotArchived, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
 	}
@@ -1799,7 +1799,7 @@ func TestInspectorArchiveAllScheduledTasks(t *testing.T) {
 	tests := []struct {
 		scheduled     map[string][]base.Z
 		archived      map[string][]base.Z
-		qname         string
+		queueName     string
 		want          int
 		wantScheduled map[string][]base.Z
 		wantArchived  map[string][]base.Z
@@ -1813,8 +1813,8 @@ func TestInspectorArchiveAllScheduledTasks(t *testing.T) {
 				"default": {},
 				"custom":  {},
 			},
-			qname: "default",
-			want:  3,
+			queueName: "default",
+			want:      3,
 			wantScheduled: map[string][]base.Z{
 				"default": {},
 				"custom":  {z4},
@@ -1835,8 +1835,8 @@ func TestInspectorArchiveAllScheduledTasks(t *testing.T) {
 			archived: map[string][]base.Z{
 				"default": {z3},
 			},
-			qname: "default",
-			want:  2,
+			queueName: "default",
+			want:      2,
 			wantScheduled: map[string][]base.Z{
 				"default": {},
 			},
@@ -1855,8 +1855,8 @@ func TestInspectorArchiveAllScheduledTasks(t *testing.T) {
 			archived: map[string][]base.Z{
 				"default": {},
 			},
-			qname: "default",
-			want:  0,
+			queueName: "default",
+			want:      0,
 			wantScheduled: map[string][]base.Z{
 				"default": {},
 			},
@@ -1871,8 +1871,8 @@ func TestInspectorArchiveAllScheduledTasks(t *testing.T) {
 			archived: map[string][]base.Z{
 				"default": {z1, z2},
 			},
-			qname: "default",
-			want:  0,
+			queueName: "default",
+			want:      0,
 			wantScheduled: map[string][]base.Z{
 				"default": {},
 			},
@@ -1887,24 +1887,24 @@ func TestInspectorArchiveAllScheduledTasks(t *testing.T) {
 		h.SeedAllScheduledQueues(t, r, tc.scheduled)
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 
-		got, err := inspector.ArchiveAllScheduledTasks(tc.qname)
+		got, err := inspector.ArchiveAllScheduledTasks(tc.queueName)
 		if err != nil {
-			t.Errorf("ArchiveAllScheduledTasks(%q) returned error: %v", tc.qname, err)
+			t.Errorf("ArchiveAllScheduledTasks(%q) returned error: %v", tc.queueName, err)
 			continue
 		}
 		if got != tc.want {
-			t.Errorf("ArchiveAllScheduledTasks(%q) = %d, want %d", tc.qname, got, tc.want)
+			t.Errorf("ArchiveAllScheduledTasks(%q) = %d, want %d", tc.queueName, got, tc.want)
 		}
-		for qname, want := range tc.wantScheduled {
-			gotScheduled := h.GetScheduledEntries(t, r, qname)
+		for queueName, want := range tc.wantScheduled {
+			gotScheduled := h.GetScheduledEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotScheduled, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("unexpected scheduled tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected scheduled tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
-		for qname, want := range tc.wantArchived {
-			gotArchived := h.GetArchivedEntries(t, r, qname)
+		for queueName, want := range tc.wantArchived {
+			gotArchived := h.GetArchivedEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotArchived, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
 	}
@@ -1929,7 +1929,7 @@ func TestInspectorArchiveAllRetryTasks(t *testing.T) {
 	tests := []struct {
 		retry        map[string][]base.Z
 		archived     map[string][]base.Z
-		qname        string
+		queueName    string
 		want         int
 		wantRetry    map[string][]base.Z
 		wantArchived map[string][]base.Z
@@ -1943,8 +1943,8 @@ func TestInspectorArchiveAllRetryTasks(t *testing.T) {
 				"default": {},
 				"custom":  {},
 			},
-			qname: "default",
-			want:  3,
+			queueName: "default",
+			want:      3,
 			wantRetry: map[string][]base.Z{
 				"default": {},
 				"custom":  {z4},
@@ -1965,8 +1965,8 @@ func TestInspectorArchiveAllRetryTasks(t *testing.T) {
 			archived: map[string][]base.Z{
 				"default": {z3},
 			},
-			qname: "default",
-			want:  2,
+			queueName: "default",
+			want:      2,
 			wantRetry: map[string][]base.Z{
 				"default": {},
 			},
@@ -1985,8 +1985,8 @@ func TestInspectorArchiveAllRetryTasks(t *testing.T) {
 			archived: map[string][]base.Z{
 				"default": {z1, z2},
 			},
-			qname: "default",
-			want:  0,
+			queueName: "default",
+			want:      0,
 			wantRetry: map[string][]base.Z{
 				"default": {},
 			},
@@ -2001,24 +2001,24 @@ func TestInspectorArchiveAllRetryTasks(t *testing.T) {
 		h.SeedAllRetryQueues(t, r, tc.retry)
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 
-		got, err := inspector.ArchiveAllRetryTasks(tc.qname)
+		got, err := inspector.ArchiveAllRetryTasks(tc.queueName)
 		if err != nil {
-			t.Errorf("ArchiveAllRetryTasks(%q) returned error: %v", tc.qname, err)
+			t.Errorf("ArchiveAllRetryTasks(%q) returned error: %v", tc.queueName, err)
 			continue
 		}
 		if got != tc.want {
-			t.Errorf("ArchiveAllRetryTasks(%q) = %d, want %d", tc.qname, got, tc.want)
+			t.Errorf("ArchiveAllRetryTasks(%q) = %d, want %d", tc.queueName, got, tc.want)
 		}
-		for qname, want := range tc.wantRetry {
-			gotRetry := h.GetRetryEntries(t, r, qname)
+		for queueName, want := range tc.wantRetry {
+			gotRetry := h.GetRetryEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotRetry, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("unexpected retry tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected retry tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
-		for qname, want := range tc.wantArchived {
-			wantArchived := h.GetArchivedEntries(t, r, qname)
+		for queueName, want := range tc.wantArchived {
+			wantArchived := h.GetArchivedEntries(t, r, queueName)
 			if diff := cmp.Diff(want, wantArchived, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
 	}
@@ -2042,7 +2042,7 @@ func TestInspectorRunAllScheduledTasks(t *testing.T) {
 	tests := []struct {
 		scheduled     map[string][]base.Z
 		pending       map[string][]*base.TaskMessage
-		qname         string
+		queueName     string
 		want          int
 		wantScheduled map[string][]base.Z
 		wantPending   map[string][]*base.TaskMessage
@@ -2058,8 +2058,8 @@ func TestInspectorRunAllScheduledTasks(t *testing.T) {
 				"critical": {},
 				"low":      {},
 			},
-			qname: "default",
-			want:  2,
+			queueName: "default",
+			want:      2,
 			wantScheduled: map[string][]base.Z{
 				"default":  {},
 				"critical": {z2},
@@ -2082,8 +2082,8 @@ func TestInspectorRunAllScheduledTasks(t *testing.T) {
 				"critical": {},
 				"low":      {},
 			},
-			qname: "default",
-			want:  1,
+			queueName: "default",
+			want:      1,
 			wantScheduled: map[string][]base.Z{
 				"default":  {},
 				"critical": {z2},
@@ -2102,8 +2102,8 @@ func TestInspectorRunAllScheduledTasks(t *testing.T) {
 			pending: map[string][]*base.TaskMessage{
 				"default": {m1, m4},
 			},
-			qname: "default",
-			want:  0,
+			queueName: "default",
+			want:      0,
 			wantScheduled: map[string][]base.Z{
 				"default": {},
 			},
@@ -2118,24 +2118,24 @@ func TestInspectorRunAllScheduledTasks(t *testing.T) {
 		h.SeedAllScheduledQueues(t, r, tc.scheduled)
 		h.SeedAllPendingQueues(t, r, tc.pending)
 
-		got, err := inspector.RunAllScheduledTasks(tc.qname)
+		got, err := inspector.RunAllScheduledTasks(tc.queueName)
 		if err != nil {
-			t.Errorf("RunAllScheduledTasks(%q) returned error: %v", tc.qname, err)
+			t.Errorf("RunAllScheduledTasks(%q) returned error: %v", tc.queueName, err)
 			continue
 		}
 		if got != tc.want {
-			t.Errorf("RunAllScheduledTasks(%q) = %d, want %d", tc.qname, got, tc.want)
+			t.Errorf("RunAllScheduledTasks(%q) = %d, want %d", tc.queueName, got, tc.want)
 		}
-		for qname, want := range tc.wantScheduled {
-			gotScheduled := h.GetScheduledEntries(t, r, qname)
+		for queueName, want := range tc.wantScheduled {
+			gotScheduled := h.GetScheduledEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotScheduled, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("unexpected scheduled tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected scheduled tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
-		for qname, want := range tc.wantPending {
-			gotPending := h.GetPendingMessages(t, r, qname)
+		for queueName, want := range tc.wantPending {
+			gotPending := h.GetPendingMessages(t, r, queueName)
 			if diff := cmp.Diff(want, gotPending, h.SortMsgOpt); diff != "" {
-				t.Errorf("unexpected pending tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected pending tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
 	}
@@ -2159,7 +2159,7 @@ func TestInspectorRunAllRetryTasks(t *testing.T) {
 	tests := []struct {
 		retry       map[string][]base.Z
 		pending     map[string][]*base.TaskMessage
-		qname       string
+		queueName   string
 		want        int
 		wantRetry   map[string][]base.Z
 		wantPending map[string][]*base.TaskMessage
@@ -2175,8 +2175,8 @@ func TestInspectorRunAllRetryTasks(t *testing.T) {
 				"critical": {},
 				"low":      {},
 			},
-			qname: "default",
-			want:  2,
+			queueName: "default",
+			want:      2,
 			wantRetry: map[string][]base.Z{
 				"default":  {},
 				"critical": {z2},
@@ -2199,8 +2199,8 @@ func TestInspectorRunAllRetryTasks(t *testing.T) {
 				"critical": {},
 				"low":      {},
 			},
-			qname: "default",
-			want:  1,
+			queueName: "default",
+			want:      1,
 			wantRetry: map[string][]base.Z{
 				"default":  {},
 				"critical": {z2},
@@ -2219,8 +2219,8 @@ func TestInspectorRunAllRetryTasks(t *testing.T) {
 			pending: map[string][]*base.TaskMessage{
 				"default": {m1, m4},
 			},
-			qname: "default",
-			want:  0,
+			queueName: "default",
+			want:      0,
 			wantRetry: map[string][]base.Z{
 				"default": {},
 			},
@@ -2235,24 +2235,24 @@ func TestInspectorRunAllRetryTasks(t *testing.T) {
 		h.SeedAllRetryQueues(t, r, tc.retry)
 		h.SeedAllPendingQueues(t, r, tc.pending)
 
-		got, err := inspector.RunAllRetryTasks(tc.qname)
+		got, err := inspector.RunAllRetryTasks(tc.queueName)
 		if err != nil {
-			t.Errorf("RunAllRetryTasks(%q) returned error: %v", tc.qname, err)
+			t.Errorf("RunAllRetryTasks(%q) returned error: %v", tc.queueName, err)
 			continue
 		}
 		if got != tc.want {
-			t.Errorf("RunAllRetryTasks(%q) = %d, want %d", tc.qname, got, tc.want)
+			t.Errorf("RunAllRetryTasks(%q) = %d, want %d", tc.queueName, got, tc.want)
 		}
-		for qname, want := range tc.wantRetry {
-			gotRetry := h.GetRetryEntries(t, r, qname)
+		for queueName, want := range tc.wantRetry {
+			gotRetry := h.GetRetryEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotRetry, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("unexpected retry tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected retry tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
-		for qname, want := range tc.wantPending {
-			gotPending := h.GetPendingMessages(t, r, qname)
+		for queueName, want := range tc.wantPending {
+			gotPending := h.GetPendingMessages(t, r, queueName)
 			if diff := cmp.Diff(want, gotPending, h.SortMsgOpt); diff != "" {
-				t.Errorf("unexpected pending tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected pending tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
 	}
@@ -2276,7 +2276,7 @@ func TestInspectorRunAllArchivedTasks(t *testing.T) {
 	tests := []struct {
 		archived     map[string][]base.Z
 		pending      map[string][]*base.TaskMessage
-		qname        string
+		queueName    string
 		want         int
 		wantArchived map[string][]base.Z
 		wantPending  map[string][]*base.TaskMessage
@@ -2292,8 +2292,8 @@ func TestInspectorRunAllArchivedTasks(t *testing.T) {
 				"critical": {},
 				"low":      {},
 			},
-			qname: "default",
-			want:  2,
+			queueName: "default",
+			want:      2,
 			wantArchived: map[string][]base.Z{
 				"default":  {},
 				"critical": {z2},
@@ -2314,8 +2314,8 @@ func TestInspectorRunAllArchivedTasks(t *testing.T) {
 				"default":  {m4},
 				"critical": {},
 			},
-			qname: "default",
-			want:  1,
+			queueName: "default",
+			want:      1,
 			wantArchived: map[string][]base.Z{
 				"default":  {},
 				"critical": {z2},
@@ -2332,8 +2332,8 @@ func TestInspectorRunAllArchivedTasks(t *testing.T) {
 			pending: map[string][]*base.TaskMessage{
 				"default": {m1, m4},
 			},
-			qname: "default",
-			want:  0,
+			queueName: "default",
+			want:      0,
 			wantArchived: map[string][]base.Z{
 				"default": {},
 			},
@@ -2348,25 +2348,25 @@ func TestInspectorRunAllArchivedTasks(t *testing.T) {
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 		h.SeedAllPendingQueues(t, r, tc.pending)
 
-		got, err := inspector.RunAllArchivedTasks(tc.qname)
+		got, err := inspector.RunAllArchivedTasks(tc.queueName)
 		if err != nil {
-			t.Errorf("RunAllArchivedTasks(%q) returned error: %v", tc.qname, err)
+			t.Errorf("RunAllArchivedTasks(%q) returned error: %v", tc.queueName, err)
 			continue
 		}
 		if got != tc.want {
-			t.Errorf("RunAllArchivedTasks(%q) = %d, want %d", tc.qname, got, tc.want)
+			t.Errorf("RunAllArchivedTasks(%q) = %d, want %d", tc.queueName, got, tc.want)
 		}
-		for qname, want := range tc.wantArchived {
-			wantArchived := h.GetArchivedEntries(t, r, qname)
+		for queueName, want := range tc.wantArchived {
+			wantArchived := h.GetArchivedEntries(t, r, queueName)
 			if diff := cmp.Diff(want, wantArchived, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 
 		}
-		for qname, want := range tc.wantPending {
-			gotPending := h.GetPendingMessages(t, r, qname)
+		for queueName, want := range tc.wantPending {
+			gotPending := h.GetPendingMessages(t, r, queueName)
 			if diff := cmp.Diff(want, gotPending, h.SortMsgOpt); diff != "" {
-				t.Errorf("unexpected pending tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected pending tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
 	}
@@ -2382,7 +2382,7 @@ func TestInspectorDeleteTaskDeletesPendingTask(t *testing.T) {
 
 	tests := []struct {
 		pending     map[string][]*base.TaskMessage
-		qname       string
+		queueName   string
 		id          string
 		wantPending map[string][]*base.TaskMessage
 	}{
@@ -2391,8 +2391,8 @@ func TestInspectorDeleteTaskDeletesPendingTask(t *testing.T) {
 				"default": {m1, m2},
 				"custom":  {m3},
 			},
-			qname: "default",
-			id:    createPendingTask(m2).ID,
+			queueName: "default",
+			id:        createPendingTask(m2).ID,
 			wantPending: map[string][]*base.TaskMessage{
 				"default": {m1},
 				"custom":  {m3},
@@ -2403,8 +2403,8 @@ func TestInspectorDeleteTaskDeletesPendingTask(t *testing.T) {
 				"default": {m1, m2},
 				"custom":  {m3},
 			},
-			qname: "custom",
-			id:    createPendingTask(m3).ID,
+			queueName: "custom",
+			id:        createPendingTask(m3).ID,
 			wantPending: map[string][]*base.TaskMessage{
 				"default": {m1, m2},
 				"custom":  {},
@@ -2416,16 +2416,16 @@ func TestInspectorDeleteTaskDeletesPendingTask(t *testing.T) {
 		h.FlushDB(t, r)
 		h.SeedAllPendingQueues(t, r, tc.pending)
 
-		if err := inspector.DeleteTask(tc.qname, tc.id); err != nil {
-			t.Errorf("DeleteTask(%q, %q) returned error: %v", tc.qname, tc.id, err)
+		if err := inspector.DeleteTask(tc.queueName, tc.id); err != nil {
+			t.Errorf("DeleteTask(%q, %q) returned error: %v", tc.queueName, tc.id, err)
 			continue
 		}
 
-		for qname, want := range tc.wantPending {
-			got := h.GetPendingMessages(t, r, qname)
+		for queueName, want := range tc.wantPending {
+			got := h.GetPendingMessages(t, r, queueName)
 			if diff := cmp.Diff(want, got, h.SortMsgOpt); diff != "" {
 				t.Errorf("unspected pending tasks in queue %q: (-want,+got):\n%s",
-					qname, diff)
+					queueName, diff)
 				continue
 			}
 		}
@@ -2447,7 +2447,7 @@ func TestInspectorDeleteTaskDeletesScheduledTask(t *testing.T) {
 
 	tests := []struct {
 		scheduled     map[string][]base.Z
-		qname         string
+		queueName     string
 		id            string
 		wantScheduled map[string][]base.Z
 	}{
@@ -2456,8 +2456,8 @@ func TestInspectorDeleteTaskDeletesScheduledTask(t *testing.T) {
 				"default": {z1, z2},
 				"custom":  {z3},
 			},
-			qname: "default",
-			id:    createScheduledTask(z2).ID,
+			queueName: "default",
+			id:        createScheduledTask(z2).ID,
 			wantScheduled: map[string][]base.Z{
 				"default": {z1},
 				"custom":  {z3},
@@ -2469,13 +2469,13 @@ func TestInspectorDeleteTaskDeletesScheduledTask(t *testing.T) {
 		h.FlushDB(t, r)
 		h.SeedAllScheduledQueues(t, r, tc.scheduled)
 
-		if err := inspector.DeleteTask(tc.qname, tc.id); err != nil {
-			t.Errorf("DeleteTask(%q, %q) returned error: %v", tc.qname, tc.id, err)
+		if err := inspector.DeleteTask(tc.queueName, tc.id); err != nil {
+			t.Errorf("DeleteTask(%q, %q) returned error: %v", tc.queueName, tc.id, err)
 		}
-		for qname, want := range tc.wantScheduled {
-			gotScheduled := h.GetScheduledEntries(t, r, qname)
+		for queueName, want := range tc.wantScheduled {
+			gotScheduled := h.GetScheduledEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotScheduled, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("unexpected scheduled tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected scheduled tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 
 		}
@@ -2497,7 +2497,7 @@ func TestInspectorDeleteTaskDeletesRetryTask(t *testing.T) {
 
 	tests := []struct {
 		retry     map[string][]base.Z
-		qname     string
+		queueName string
 		id        string
 		wantRetry map[string][]base.Z
 	}{
@@ -2506,8 +2506,8 @@ func TestInspectorDeleteTaskDeletesRetryTask(t *testing.T) {
 				"default": {z1, z2},
 				"custom":  {z3},
 			},
-			qname: "default",
-			id:    createRetryTask(z2).ID,
+			queueName: "default",
+			id:        createRetryTask(z2).ID,
 			wantRetry: map[string][]base.Z{
 				"default": {z1},
 				"custom":  {z3},
@@ -2519,14 +2519,14 @@ func TestInspectorDeleteTaskDeletesRetryTask(t *testing.T) {
 		h.FlushDB(t, r)
 		h.SeedAllRetryQueues(t, r, tc.retry)
 
-		if err := inspector.DeleteTask(tc.qname, tc.id); err != nil {
-			t.Errorf("DeleteTask(%q, %q) returned error: %v", tc.qname, tc.id, err)
+		if err := inspector.DeleteTask(tc.queueName, tc.id); err != nil {
+			t.Errorf("DeleteTask(%q, %q) returned error: %v", tc.queueName, tc.id, err)
 			continue
 		}
-		for qname, want := range tc.wantRetry {
-			gotRetry := h.GetRetryEntries(t, r, qname)
+		for queueName, want := range tc.wantRetry {
+			gotRetry := h.GetRetryEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotRetry, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("unexpected retry tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected retry tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
 	}
@@ -2547,7 +2547,7 @@ func TestInspectorDeleteTaskDeletesArchivedTask(t *testing.T) {
 
 	tests := []struct {
 		archived     map[string][]base.Z
-		qname        string
+		queueName    string
 		id           string
 		wantArchived map[string][]base.Z
 	}{
@@ -2556,8 +2556,8 @@ func TestInspectorDeleteTaskDeletesArchivedTask(t *testing.T) {
 				"default": {z1, z2},
 				"custom":  {z3},
 			},
-			qname: "default",
-			id:    createArchivedTask(z2).ID,
+			queueName: "default",
+			id:        createArchivedTask(z2).ID,
 			wantArchived: map[string][]base.Z{
 				"default": {z1},
 				"custom":  {z3},
@@ -2569,14 +2569,14 @@ func TestInspectorDeleteTaskDeletesArchivedTask(t *testing.T) {
 		h.FlushDB(t, r)
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 
-		if err := inspector.DeleteTask(tc.qname, tc.id); err != nil {
-			t.Errorf("DeleteTask(%q, %q) returned error: %v", tc.qname, tc.id, err)
+		if err := inspector.DeleteTask(tc.queueName, tc.id); err != nil {
+			t.Errorf("DeleteTask(%q, %q) returned error: %v", tc.queueName, tc.id, err)
 			continue
 		}
-		for qname, want := range tc.wantArchived {
-			wantArchived := h.GetArchivedEntries(t, r, qname)
+		for queueName, want := range tc.wantArchived {
+			wantArchived := h.GetArchivedEntries(t, r, queueName)
 			if diff := cmp.Diff(want, wantArchived, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
 	}
@@ -2597,7 +2597,7 @@ func TestInspectorDeleteTaskError(t *testing.T) {
 
 	tests := []struct {
 		archived     map[string][]base.Z
-		qname        string
+		queueName    string
 		id           string
 		wantErr      error
 		wantArchived map[string][]base.Z
@@ -2607,9 +2607,9 @@ func TestInspectorDeleteTaskError(t *testing.T) {
 				"default": {z1, z2},
 				"custom":  {z3},
 			},
-			qname:   "nonexistent",
-			id:      createArchivedTask(z2).ID,
-			wantErr: ErrQueueNotFound,
+			queueName: "nonexistent",
+			id:        createArchivedTask(z2).ID,
+			wantErr:   ErrQueueNotFound,
 			wantArchived: map[string][]base.Z{
 				"default": {z1, z2},
 				"custom":  {z3},
@@ -2620,9 +2620,9 @@ func TestInspectorDeleteTaskError(t *testing.T) {
 				"default": {z1, z2},
 				"custom":  {z3},
 			},
-			qname:   "default",
-			id:      uuid.NewString(),
-			wantErr: ErrTaskNotFound,
+			queueName: "default",
+			id:        uuid.NewString(),
+			wantErr:   ErrTaskNotFound,
 			wantArchived: map[string][]base.Z{
 				"default": {z1, z2},
 				"custom":  {z3},
@@ -2634,14 +2634,14 @@ func TestInspectorDeleteTaskError(t *testing.T) {
 		h.FlushDB(t, r)
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 
-		if err := inspector.DeleteTask(tc.qname, tc.id); !errors.Is(err, tc.wantErr) {
-			t.Errorf("DeleteTask(%q, %q) = %v, want %v", tc.qname, tc.id, err, tc.wantErr)
+		if err := inspector.DeleteTask(tc.queueName, tc.id); !errors.Is(err, tc.wantErr) {
+			t.Errorf("DeleteTask(%q, %q) = %v, want %v", tc.queueName, tc.id, err, tc.wantErr)
 			continue
 		}
-		for qname, want := range tc.wantArchived {
-			wantArchived := h.GetArchivedEntries(t, r, qname)
+		for queueName, want := range tc.wantArchived {
+			wantArchived := h.GetArchivedEntries(t, r, queueName)
 			if diff := cmp.Diff(want, wantArchived, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s", qname, diff)
+				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s", queueName, diff)
 			}
 		}
 	}
@@ -2663,7 +2663,7 @@ func TestInspectorRunTaskRunsScheduledTask(t *testing.T) {
 	tests := []struct {
 		scheduled     map[string][]base.Z
 		pending       map[string][]*base.TaskMessage
-		qname         string
+		queueName     string
 		id            string
 		wantScheduled map[string][]base.Z
 		wantPending   map[string][]*base.TaskMessage
@@ -2677,8 +2677,8 @@ func TestInspectorRunTaskRunsScheduledTask(t *testing.T) {
 				"default": {},
 				"custom":  {},
 			},
-			qname: "default",
-			id:    createScheduledTask(z2).ID,
+			queueName: "default",
+			id:        createScheduledTask(z2).ID,
 			wantScheduled: map[string][]base.Z{
 				"default": {z1},
 				"custom":  {z3},
@@ -2695,23 +2695,23 @@ func TestInspectorRunTaskRunsScheduledTask(t *testing.T) {
 		h.SeedAllScheduledQueues(t, r, tc.scheduled)
 		h.SeedAllPendingQueues(t, r, tc.pending)
 
-		if err := inspector.RunTask(tc.qname, tc.id); err != nil {
-			t.Errorf("RunTask(%q, %q) returned error: %v", tc.qname, tc.id, err)
+		if err := inspector.RunTask(tc.queueName, tc.id); err != nil {
+			t.Errorf("RunTask(%q, %q) returned error: %v", tc.queueName, tc.id, err)
 			continue
 		}
-		for qname, want := range tc.wantScheduled {
-			gotScheduled := h.GetScheduledEntries(t, r, qname)
+		for queueName, want := range tc.wantScheduled {
+			gotScheduled := h.GetScheduledEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotScheduled, h.SortZSetEntryOpt); diff != "" {
 				t.Errorf("unexpected scheduled tasks in queue %q: (-want, +got)\n%s",
-					qname, diff)
+					queueName, diff)
 			}
 
 		}
-		for qname, want := range tc.wantPending {
-			gotPending := h.GetPendingMessages(t, r, qname)
+		for queueName, want := range tc.wantPending {
+			gotPending := h.GetPendingMessages(t, r, queueName)
 			if diff := cmp.Diff(want, gotPending, h.SortMsgOpt); diff != "" {
 				t.Errorf("unexpected pending tasks in queue %q: (-want, +got)\n%s",
-					qname, diff)
+					queueName, diff)
 			}
 		}
 	}
@@ -2733,7 +2733,7 @@ func TestInspectorRunTaskRunsRetryTask(t *testing.T) {
 	tests := []struct {
 		retry       map[string][]base.Z
 		pending     map[string][]*base.TaskMessage
-		qname       string
+		queueName   string
 		id          string
 		wantRetry   map[string][]base.Z
 		wantPending map[string][]*base.TaskMessage
@@ -2747,8 +2747,8 @@ func TestInspectorRunTaskRunsRetryTask(t *testing.T) {
 				"default": {},
 				"custom":  {},
 			},
-			qname: "custom",
-			id:    createRetryTask(z2).ID,
+			queueName: "custom",
+			id:        createRetryTask(z2).ID,
 			wantRetry: map[string][]base.Z{
 				"default": {z1},
 				"custom":  {z3},
@@ -2765,22 +2765,22 @@ func TestInspectorRunTaskRunsRetryTask(t *testing.T) {
 		h.SeedAllRetryQueues(t, r, tc.retry)
 		h.SeedAllPendingQueues(t, r, tc.pending)
 
-		if err := inspector.RunTask(tc.qname, tc.id); err != nil {
-			t.Errorf("RunTaskBy(%q, %q) returned error: %v", tc.qname, tc.id, err)
+		if err := inspector.RunTask(tc.queueName, tc.id); err != nil {
+			t.Errorf("RunTaskBy(%q, %q) returned error: %v", tc.queueName, tc.id, err)
 			continue
 		}
-		for qname, want := range tc.wantRetry {
-			gotRetry := h.GetRetryEntries(t, r, qname)
+		for queueName, want := range tc.wantRetry {
+			gotRetry := h.GetRetryEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotRetry, h.SortZSetEntryOpt); diff != "" {
 				t.Errorf("unexpected retry tasks in queue %q: (-want, +got)\n%s",
-					qname, diff)
+					queueName, diff)
 			}
 		}
-		for qname, want := range tc.wantPending {
-			gotPending := h.GetPendingMessages(t, r, qname)
+		for queueName, want := range tc.wantPending {
+			gotPending := h.GetPendingMessages(t, r, queueName)
 			if diff := cmp.Diff(want, gotPending, h.SortMsgOpt); diff != "" {
 				t.Errorf("unexpected pending tasks in queue %q: (-want, +got)\n%s",
-					qname, diff)
+					queueName, diff)
 			}
 		}
 	}
@@ -2802,7 +2802,7 @@ func TestInspectorRunTaskRunsArchivedTask(t *testing.T) {
 	tests := []struct {
 		archived     map[string][]base.Z
 		pending      map[string][]*base.TaskMessage
-		qname        string
+		queueName    string
 		id           string
 		wantArchived map[string][]base.Z
 		wantPending  map[string][]*base.TaskMessage
@@ -2818,8 +2818,8 @@ func TestInspectorRunTaskRunsArchivedTask(t *testing.T) {
 				"critical": {},
 				"low":      {},
 			},
-			qname: "critical",
-			id:    createArchivedTask(z2).ID,
+			queueName: "critical",
+			id:        createArchivedTask(z2).ID,
 			wantArchived: map[string][]base.Z{
 				"default":  {z1},
 				"critical": {},
@@ -2838,22 +2838,22 @@ func TestInspectorRunTaskRunsArchivedTask(t *testing.T) {
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 		h.SeedAllPendingQueues(t, r, tc.pending)
 
-		if err := inspector.RunTask(tc.qname, tc.id); err != nil {
-			t.Errorf("RunTask(%q, %q) returned error: %v", tc.qname, tc.id, err)
+		if err := inspector.RunTask(tc.queueName, tc.id); err != nil {
+			t.Errorf("RunTask(%q, %q) returned error: %v", tc.queueName, tc.id, err)
 			continue
 		}
-		for qname, want := range tc.wantArchived {
-			wantArchived := h.GetArchivedEntries(t, r, qname)
+		for queueName, want := range tc.wantArchived {
+			wantArchived := h.GetArchivedEntries(t, r, queueName)
 			if diff := cmp.Diff(want, wantArchived, h.SortZSetEntryOpt); diff != "" {
 				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s",
-					qname, diff)
+					queueName, diff)
 			}
 		}
-		for qname, want := range tc.wantPending {
-			gotPending := h.GetPendingMessages(t, r, qname)
+		for queueName, want := range tc.wantPending {
+			gotPending := h.GetPendingMessages(t, r, queueName)
 			if diff := cmp.Diff(want, gotPending, h.SortMsgOpt); diff != "" {
 				t.Errorf("unexpected pending tasks in queue %q: (-want, +got)\n%s",
-					qname, diff)
+					queueName, diff)
 			}
 		}
 	}
@@ -2875,7 +2875,7 @@ func TestInspectorRunTaskError(t *testing.T) {
 	tests := []struct {
 		archived     map[string][]base.Z
 		pending      map[string][]*base.TaskMessage
-		qname        string
+		queueName    string
 		id           string
 		wantErr      error
 		wantArchived map[string][]base.Z
@@ -2892,9 +2892,9 @@ func TestInspectorRunTaskError(t *testing.T) {
 				"critical": {},
 				"low":      {},
 			},
-			qname:   "nonexistent",
-			id:      createArchivedTask(z2).ID,
-			wantErr: ErrQueueNotFound,
+			queueName: "nonexistent",
+			id:        createArchivedTask(z2).ID,
+			wantErr:   ErrQueueNotFound,
 			wantArchived: map[string][]base.Z{
 				"default":  {z1},
 				"critical": {z2},
@@ -2917,9 +2917,9 @@ func TestInspectorRunTaskError(t *testing.T) {
 				"critical": {},
 				"low":      {},
 			},
-			qname:   "default",
-			id:      uuid.NewString(),
-			wantErr: ErrTaskNotFound,
+			queueName: "default",
+			id:        uuid.NewString(),
+			wantErr:   ErrTaskNotFound,
 			wantArchived: map[string][]base.Z{
 				"default":  {z1},
 				"critical": {z2},
@@ -2938,22 +2938,22 @@ func TestInspectorRunTaskError(t *testing.T) {
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 		h.SeedAllPendingQueues(t, r, tc.pending)
 
-		if err := inspector.RunTask(tc.qname, tc.id); !errors.Is(err, tc.wantErr) {
-			t.Errorf("RunTask(%q, %q) = %v, want %v", tc.qname, tc.id, err, tc.wantErr)
+		if err := inspector.RunTask(tc.queueName, tc.id); !errors.Is(err, tc.wantErr) {
+			t.Errorf("RunTask(%q, %q) = %v, want %v", tc.queueName, tc.id, err, tc.wantErr)
 			continue
 		}
-		for qname, want := range tc.wantArchived {
-			wantArchived := h.GetArchivedEntries(t, r, qname)
+		for queueName, want := range tc.wantArchived {
+			wantArchived := h.GetArchivedEntries(t, r, queueName)
 			if diff := cmp.Diff(want, wantArchived, h.SortZSetEntryOpt); diff != "" {
 				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s",
-					qname, diff)
+					queueName, diff)
 			}
 		}
-		for qname, want := range tc.wantPending {
-			gotPending := h.GetPendingMessages(t, r, qname)
+		for queueName, want := range tc.wantPending {
+			gotPending := h.GetPendingMessages(t, r, queueName)
 			if diff := cmp.Diff(want, gotPending, h.SortMsgOpt); diff != "" {
 				t.Errorf("unexpected pending tasks in queue %q: (-want, +got)\n%s",
-					qname, diff)
+					queueName, diff)
 			}
 		}
 	}
@@ -2972,7 +2972,7 @@ func TestInspectorArchiveTaskArchivesPendingTask(t *testing.T) {
 	tests := []struct {
 		pending      map[string][]*base.TaskMessage
 		archived     map[string][]base.Z
-		qname        string
+		queueName    string
 		id           string
 		wantPending  map[string][]*base.TaskMessage
 		wantArchived map[string][]base.Z
@@ -2986,8 +2986,8 @@ func TestInspectorArchiveTaskArchivesPendingTask(t *testing.T) {
 				"default": {},
 				"custom":  {},
 			},
-			qname: "default",
-			id:    createPendingTask(m1).ID,
+			queueName: "default",
+			id:        createPendingTask(m1).ID,
 			wantPending: map[string][]*base.TaskMessage{
 				"default": {},
 				"custom":  {m2, m3},
@@ -3008,8 +3008,8 @@ func TestInspectorArchiveTaskArchivesPendingTask(t *testing.T) {
 				"default": {},
 				"custom":  {},
 			},
-			qname: "custom",
-			id:    createPendingTask(m2).ID,
+			queueName: "custom",
+			id:        createPendingTask(m2).ID,
 			wantPending: map[string][]*base.TaskMessage{
 				"default": {m1},
 				"custom":  {m3},
@@ -3028,23 +3028,23 @@ func TestInspectorArchiveTaskArchivesPendingTask(t *testing.T) {
 		h.SeedAllPendingQueues(t, r, tc.pending)
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 
-		if err := inspector.ArchiveTask(tc.qname, tc.id); err != nil {
-			t.Errorf("ArchiveTask(%q, %q) returned error: %v", tc.qname, tc.id, err)
+		if err := inspector.ArchiveTask(tc.queueName, tc.id); err != nil {
+			t.Errorf("ArchiveTask(%q, %q) returned error: %v", tc.queueName, tc.id, err)
 			continue
 		}
-		for qname, want := range tc.wantPending {
-			gotPending := h.GetPendingMessages(t, r, qname)
+		for queueName, want := range tc.wantPending {
+			gotPending := h.GetPendingMessages(t, r, queueName)
 			if diff := cmp.Diff(want, gotPending, h.SortMsgOpt); diff != "" {
 				t.Errorf("unexpected pending tasks in queue %q: (-want,+got)\n%s",
-					qname, diff)
+					queueName, diff)
 			}
 
 		}
-		for qname, want := range tc.wantArchived {
-			wantArchived := h.GetArchivedEntries(t, r, qname)
+		for queueName, want := range tc.wantArchived {
+			wantArchived := h.GetArchivedEntries(t, r, queueName)
 			if diff := cmp.Diff(want, wantArchived, h.SortZSetEntryOpt); diff != "" {
 				t.Errorf("unexpected archived tasks in queue %q: (-want,+got)\n%s",
-					qname, diff)
+					queueName, diff)
 			}
 		}
 	}
@@ -3067,7 +3067,7 @@ func TestInspectorArchiveTaskArchivesScheduledTask(t *testing.T) {
 	tests := []struct {
 		scheduled     map[string][]base.Z
 		archived      map[string][]base.Z
-		qname         string
+		queueName     string
 		id            string
 		want          string
 		wantScheduled map[string][]base.Z
@@ -3082,8 +3082,8 @@ func TestInspectorArchiveTaskArchivesScheduledTask(t *testing.T) {
 				"default": {},
 				"custom":  {},
 			},
-			qname: "custom",
-			id:    createScheduledTask(z2).ID,
+			queueName: "custom",
+			id:        createScheduledTask(z2).ID,
 			wantScheduled: map[string][]base.Z{
 				"default": {z1},
 				"custom":  {z3},
@@ -3105,23 +3105,23 @@ func TestInspectorArchiveTaskArchivesScheduledTask(t *testing.T) {
 		h.SeedAllScheduledQueues(t, r, tc.scheduled)
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 
-		if err := inspector.ArchiveTask(tc.qname, tc.id); err != nil {
-			t.Errorf("ArchiveTask(%q, %q) returned error: %v", tc.qname, tc.id, err)
+		if err := inspector.ArchiveTask(tc.queueName, tc.id); err != nil {
+			t.Errorf("ArchiveTask(%q, %q) returned error: %v", tc.queueName, tc.id, err)
 			continue
 		}
-		for qname, want := range tc.wantScheduled {
-			gotScheduled := h.GetScheduledEntries(t, r, qname)
+		for queueName, want := range tc.wantScheduled {
+			gotScheduled := h.GetScheduledEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotScheduled, h.SortZSetEntryOpt); diff != "" {
 				t.Errorf("unexpected scheduled tasks in queue %q: (-want, +got)\n%s",
-					qname, diff)
+					queueName, diff)
 			}
 
 		}
-		for qname, want := range tc.wantArchived {
-			wantArchived := h.GetArchivedEntries(t, r, qname)
+		for queueName, want := range tc.wantArchived {
+			wantArchived := h.GetArchivedEntries(t, r, queueName)
 			if diff := cmp.Diff(want, wantArchived, h.SortZSetEntryOpt); diff != "" {
 				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s",
-					qname, diff)
+					queueName, diff)
 			}
 		}
 	}
@@ -3144,7 +3144,7 @@ func TestInspectorArchiveTaskArchivesRetryTask(t *testing.T) {
 	tests := []struct {
 		retry        map[string][]base.Z
 		archived     map[string][]base.Z
-		qname        string
+		queueName    string
 		id           string
 		wantRetry    map[string][]base.Z
 		wantArchived map[string][]base.Z
@@ -3158,8 +3158,8 @@ func TestInspectorArchiveTaskArchivesRetryTask(t *testing.T) {
 				"default": {},
 				"custom":  {},
 			},
-			qname: "custom",
-			id:    createRetryTask(z2).ID,
+			queueName: "custom",
+			id:        createRetryTask(z2).ID,
 			wantRetry: map[string][]base.Z{
 				"default": {z1},
 				"custom":  {z3},
@@ -3181,22 +3181,22 @@ func TestInspectorArchiveTaskArchivesRetryTask(t *testing.T) {
 		h.SeedAllRetryQueues(t, r, tc.retry)
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 
-		if err := inspector.ArchiveTask(tc.qname, tc.id); err != nil {
-			t.Errorf("ArchiveTask(%q, %q) returned error: %v", tc.qname, tc.id, err)
+		if err := inspector.ArchiveTask(tc.queueName, tc.id); err != nil {
+			t.Errorf("ArchiveTask(%q, %q) returned error: %v", tc.queueName, tc.id, err)
 			continue
 		}
-		for qname, want := range tc.wantRetry {
-			gotRetry := h.GetRetryEntries(t, r, qname)
+		for queueName, want := range tc.wantRetry {
+			gotRetry := h.GetRetryEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotRetry, h.SortZSetEntryOpt); diff != "" {
 				t.Errorf("unexpected retry tasks in queue %q: (-want, +got)\n%s",
-					qname, diff)
+					queueName, diff)
 			}
 		}
-		for qname, want := range tc.wantArchived {
-			wantArchived := h.GetArchivedEntries(t, r, qname)
+		for queueName, want := range tc.wantArchived {
+			wantArchived := h.GetArchivedEntries(t, r, queueName)
 			if diff := cmp.Diff(want, wantArchived, h.SortZSetEntryOpt); diff != "" {
 				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s",
-					qname, diff)
+					queueName, diff)
 			}
 		}
 	}
@@ -3219,7 +3219,7 @@ func TestInspectorArchiveTaskError(t *testing.T) {
 	tests := []struct {
 		retry        map[string][]base.Z
 		archived     map[string][]base.Z
-		qname        string
+		queueName    string
 		id           string
 		wantErr      error
 		wantRetry    map[string][]base.Z
@@ -3234,9 +3234,9 @@ func TestInspectorArchiveTaskError(t *testing.T) {
 				"default": {},
 				"custom":  {},
 			},
-			qname:   "nonexistent",
-			id:      createRetryTask(z2).ID,
-			wantErr: ErrQueueNotFound,
+			queueName: "nonexistent",
+			id:        createRetryTask(z2).ID,
+			wantErr:   ErrQueueNotFound,
 			wantRetry: map[string][]base.Z{
 				"default": {z1},
 				"custom":  {z2, z3},
@@ -3255,9 +3255,9 @@ func TestInspectorArchiveTaskError(t *testing.T) {
 				"default": {},
 				"custom":  {},
 			},
-			qname:   "custom",
-			id:      uuid.NewString(),
-			wantErr: ErrTaskNotFound,
+			queueName: "custom",
+			id:        uuid.NewString(),
+			wantErr:   ErrTaskNotFound,
 			wantRetry: map[string][]base.Z{
 				"default": {z1},
 				"custom":  {z2, z3},
@@ -3274,22 +3274,22 @@ func TestInspectorArchiveTaskError(t *testing.T) {
 		h.SeedAllRetryQueues(t, r, tc.retry)
 		h.SeedAllArchivedQueues(t, r, tc.archived)
 
-		if err := inspector.ArchiveTask(tc.qname, tc.id); !errors.Is(err, tc.wantErr) {
-			t.Errorf("ArchiveTask(%q, %q) = %v, want %v", tc.qname, tc.id, err, tc.wantErr)
+		if err := inspector.ArchiveTask(tc.queueName, tc.id); !errors.Is(err, tc.wantErr) {
+			t.Errorf("ArchiveTask(%q, %q) = %v, want %v", tc.queueName, tc.id, err, tc.wantErr)
 			continue
 		}
-		for qname, want := range tc.wantRetry {
-			gotRetry := h.GetRetryEntries(t, r, qname)
+		for queueName, want := range tc.wantRetry {
+			gotRetry := h.GetRetryEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotRetry, h.SortZSetEntryOpt); diff != "" {
 				t.Errorf("unexpected retry tasks in queue %q: (-want, +got)\n%s",
-					qname, diff)
+					queueName, diff)
 			}
 		}
-		for qname, want := range tc.wantArchived {
-			wantArchived := h.GetArchivedEntries(t, r, qname)
+		for queueName, want := range tc.wantArchived {
+			wantArchived := h.GetArchivedEntries(t, r, queueName)
 			if diff := cmp.Diff(want, wantArchived, h.SortZSetEntryOpt); diff != "" {
 				t.Errorf("unexpected archived tasks in queue %q: (-want, +got)\n%s",
-					qname, diff)
+					queueName, diff)
 			}
 		}
 	}
@@ -3488,21 +3488,21 @@ func TestInspectorGroups(t *testing.T) {
 	}
 
 	tests := []struct {
-		desc  string
-		qname string
-		want  []*GroupInfo
+		desc      string
+		queueName string
+		want      []*GroupInfo
 	}{
 		{
-			desc:  "default queue groups",
-			qname: "default",
+			desc:      "default queue groups",
+			queueName: "default",
 			want: []*GroupInfo{
 				{Group: "group1", Size: 3},
 				{Group: "group2", Size: 1},
 			},
 		},
 		{
-			desc:  "custom queue groups",
-			qname: "custom",
+			desc:      "custom queue groups",
+			queueName: "custom",
 			want: []*GroupInfo{
 				{Group: "group1", Size: 2},
 			},
@@ -3526,7 +3526,7 @@ func TestInspectorGroups(t *testing.T) {
 		h.SeedRedisZSets(t, r, fixtures.groups)
 
 		t.Run(tc.desc, func(t *testing.T) {
-			got, err := inspector.Groups(tc.qname)
+			got, err := inspector.Groups(tc.queueName)
 			if err != nil {
 				t.Fatalf("Groups returned error: %v", err)
 			}

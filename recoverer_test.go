@@ -235,37 +235,37 @@ func TestRecoverer(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		recoverer.shutdown()
 
-		for qname, want := range tc.wantActive {
-			gotActive := h.GetActiveMessages(t, r, qname)
+		for queueName, want := range tc.wantActive {
+			gotActive := h.GetActiveMessages(t, r, queueName)
 			if diff := cmp.Diff(want, gotActive, h.SortMsgOpt); diff != "" {
-				t.Errorf("%s; mismatch found in %q; (-want,+got)\n%s", tc.desc, base.ActiveKey(qname), diff)
+				t.Errorf("%s; mismatch found in %q; (-want,+got)\n%s", tc.desc, base.ActiveKey(queueName), diff)
 			}
 		}
-		for qname, want := range tc.wantLease {
-			gotLease := h.GetLeaseEntries(t, r, qname)
+		for queueName, want := range tc.wantLease {
+			gotLease := h.GetLeaseEntries(t, r, queueName)
 			if diff := cmp.Diff(want, gotLease, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("%s; mismatch found in %q; (-want,+got)\n%s", tc.desc, base.LeaseKey(qname), diff)
+				t.Errorf("%s; mismatch found in %q; (-want,+got)\n%s", tc.desc, base.LeaseKey(queueName), diff)
 			}
 		}
 		cmpOpt := h.EquateInt64Approx(2) // allow up to two-second difference in `LastFailedAt`
-		for qname, msgs := range tc.wantRetry {
-			gotRetry := h.GetRetryMessages(t, r, qname)
+		for queueName, msgs := range tc.wantRetry {
+			gotRetry := h.GetRetryMessages(t, r, queueName)
 			var wantRetry []*base.TaskMessage // Note: construct message here since `LastFailedAt` is relative to each test run
 			for _, msg := range msgs {
 				wantRetry = append(wantRetry, h.TaskMessageAfterRetry(*msg, ErrLeaseExpired.Error(), runTime))
 			}
 			if diff := cmp.Diff(wantRetry, gotRetry, h.SortMsgOpt, cmpOpt); diff != "" {
-				t.Errorf("%s; mismatch found in %q: (-want, +got)\n%s", tc.desc, base.RetryKey(qname), diff)
+				t.Errorf("%s; mismatch found in %q: (-want, +got)\n%s", tc.desc, base.RetryKey(queueName), diff)
 			}
 		}
-		for qname, msgs := range tc.wantArchived {
-			gotArchived := h.GetArchivedMessages(t, r, qname)
+		for queueName, msgs := range tc.wantArchived {
+			gotArchived := h.GetArchivedMessages(t, r, queueName)
 			var wantArchived []*base.TaskMessage
 			for _, msg := range msgs {
 				wantArchived = append(wantArchived, h.TaskMessageWithError(*msg, ErrLeaseExpired.Error(), runTime))
 			}
 			if diff := cmp.Diff(wantArchived, gotArchived, h.SortMsgOpt, cmpOpt); diff != "" {
-				t.Errorf("%s; mismatch found in %q: (-want, +got)\n%s", tc.desc, base.ArchivedKey(qname), diff)
+				t.Errorf("%s; mismatch found in %q: (-want, +got)\n%s", tc.desc, base.ArchivedKey(queueName), diff)
 			}
 		}
 	}

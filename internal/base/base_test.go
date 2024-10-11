@@ -19,196 +19,196 @@ func TestTaskKey(t *testing.T) {
 	id := uuid.NewString()
 
 	tests := []struct {
-		qname string
-		id    string
-		want  string
+		queueName string
+		id        string
+		want      string
 	}{
 		{"default", id, fmt.Sprintf("asynq:{default}:t:%s", id)},
 	}
 
 	for _, tc := range tests {
-		got := TaskKey(tc.qname, tc.id)
+		got := TaskKey(tc.queueName, tc.id)
 		if got != tc.want {
-			t.Errorf("TaskKey(%q, %s) = %q, want %q", tc.qname, tc.id, got, tc.want)
+			t.Errorf("TaskKey(%q, %s) = %q, want %q", tc.queueName, tc.id, got, tc.want)
 		}
 	}
 }
 
 func TestQueueKey(t *testing.T) {
 	tests := []struct {
-		qname string
-		want  string
+		queueName string
+		want      string
 	}{
 		{"default", "asynq:{default}:pending"},
 		{"custom", "asynq:{custom}:pending"},
 	}
 
 	for _, tc := range tests {
-		got := PendingKey(tc.qname)
+		got := PendingKey(tc.queueName)
 		if got != tc.want {
-			t.Errorf("QueueKey(%q) = %q, want %q", tc.qname, got, tc.want)
+			t.Errorf("QueueKey(%q) = %q, want %q", tc.queueName, got, tc.want)
 		}
 	}
 }
 
 func TestActiveKey(t *testing.T) {
 	tests := []struct {
-		qname string
-		want  string
+		queueName string
+		want      string
 	}{
 		{"default", "asynq:{default}:active"},
 		{"custom", "asynq:{custom}:active"},
 	}
 
 	for _, tc := range tests {
-		got := ActiveKey(tc.qname)
+		got := ActiveKey(tc.queueName)
 		if got != tc.want {
-			t.Errorf("ActiveKey(%q) = %q, want %q", tc.qname, got, tc.want)
+			t.Errorf("ActiveKey(%q) = %q, want %q", tc.queueName, got, tc.want)
 		}
 	}
 }
 
 func TestLeaseKey(t *testing.T) {
 	tests := []struct {
-		qname string
-		want  string
+		queueName string
+		want      string
 	}{
 		{"default", "asynq:{default}:lease"},
 		{"custom", "asynq:{custom}:lease"},
 	}
 
 	for _, tc := range tests {
-		got := LeaseKey(tc.qname)
+		got := LeaseKey(tc.queueName)
 		if got != tc.want {
-			t.Errorf("LeaseKey(%q) = %q, want %q", tc.qname, got, tc.want)
+			t.Errorf("LeaseKey(%q) = %q, want %q", tc.queueName, got, tc.want)
 		}
 	}
 }
 
 func TestScheduledKey(t *testing.T) {
 	tests := []struct {
-		qname string
-		want  string
+		queueName string
+		want      string
 	}{
 		{"default", "asynq:{default}:scheduled"},
 		{"custom", "asynq:{custom}:scheduled"},
 	}
 
 	for _, tc := range tests {
-		got := ScheduledKey(tc.qname)
+		got := ScheduledKey(tc.queueName)
 		if got != tc.want {
-			t.Errorf("ScheduledKey(%q) = %q, want %q", tc.qname, got, tc.want)
+			t.Errorf("ScheduledKey(%q) = %q, want %q", tc.queueName, got, tc.want)
 		}
 	}
 }
 
 func TestRetryKey(t *testing.T) {
 	tests := []struct {
-		qname string
-		want  string
+		queueName string
+		want      string
 	}{
 		{"default", "asynq:{default}:retry"},
 		{"custom", "asynq:{custom}:retry"},
 	}
 
 	for _, tc := range tests {
-		got := RetryKey(tc.qname)
+		got := RetryKey(tc.queueName)
 		if got != tc.want {
-			t.Errorf("RetryKey(%q) = %q, want %q", tc.qname, got, tc.want)
+			t.Errorf("RetryKey(%q) = %q, want %q", tc.queueName, got, tc.want)
 		}
 	}
 }
 
 func TestArchivedKey(t *testing.T) {
 	tests := []struct {
-		qname string
-		want  string
+		queueName string
+		want      string
 	}{
 		{"default", "asynq:{default}:archived"},
 		{"custom", "asynq:{custom}:archived"},
 	}
 
 	for _, tc := range tests {
-		got := ArchivedKey(tc.qname)
+		got := ArchivedKey(tc.queueName)
 		if got != tc.want {
-			t.Errorf("ArchivedKey(%q) = %q, want %q", tc.qname, got, tc.want)
+			t.Errorf("ArchivedKey(%q) = %q, want %q", tc.queueName, got, tc.want)
 		}
 	}
 }
 
 func TestCompletedKey(t *testing.T) {
 	tests := []struct {
-		qname string
-		want  string
+		queueName string
+		want      string
 	}{
 		{"default", "asynq:{default}:completed"},
 		{"custom", "asynq:{custom}:completed"},
 	}
 
 	for _, tc := range tests {
-		got := CompletedKey(tc.qname)
+		got := CompletedKey(tc.queueName)
 		if got != tc.want {
-			t.Errorf("CompletedKey(%q) = %q, want %q", tc.qname, got, tc.want)
+			t.Errorf("CompletedKey(%q) = %q, want %q", tc.queueName, got, tc.want)
 		}
 	}
 }
 
 func TestPausedKey(t *testing.T) {
 	tests := []struct {
-		qname string
-		want  string
+		queueName string
+		want      string
 	}{
 		{"default", "asynq:{default}:paused"},
 		{"custom", "asynq:{custom}:paused"},
 	}
 
 	for _, tc := range tests {
-		got := PausedKey(tc.qname)
+		got := PausedKey(tc.queueName)
 		if got != tc.want {
-			t.Errorf("PausedKey(%q) = %q, want %q", tc.qname, got, tc.want)
+			t.Errorf("PausedKey(%q) = %q, want %q", tc.queueName, got, tc.want)
 		}
 	}
 }
 
 func TestProcessedTotalKey(t *testing.T) {
 	tests := []struct {
-		qname string
-		want  string
+		queueName string
+		want      string
 	}{
 		{"default", "asynq:{default}:processed"},
 		{"custom", "asynq:{custom}:processed"},
 	}
 
 	for _, tc := range tests {
-		got := ProcessedTotalKey(tc.qname)
+		got := ProcessedTotalKey(tc.queueName)
 		if got != tc.want {
-			t.Errorf("ProcessedTotalKey(%q) = %q, want %q", tc.qname, got, tc.want)
+			t.Errorf("ProcessedTotalKey(%q) = %q, want %q", tc.queueName, got, tc.want)
 		}
 	}
 }
 
 func TestFailedTotalKey(t *testing.T) {
 	tests := []struct {
-		qname string
-		want  string
+		queueName string
+		want      string
 	}{
 		{"default", "asynq:{default}:failed"},
 		{"custom", "asynq:{custom}:failed"},
 	}
 
 	for _, tc := range tests {
-		got := FailedTotalKey(tc.qname)
+		got := FailedTotalKey(tc.queueName)
 		if got != tc.want {
-			t.Errorf("FailedTotalKey(%q) = %q, want %q", tc.qname, got, tc.want)
+			t.Errorf("FailedTotalKey(%q) = %q, want %q", tc.queueName, got, tc.want)
 		}
 	}
 }
 
 func TestProcessedKey(t *testing.T) {
 	tests := []struct {
-		qname string
-		input time.Time
-		want  string
+		queueName string
+		input     time.Time
+		want      string
 	}{
 		{"default", time.Date(2019, 11, 14, 10, 30, 1, 1, time.UTC), "asynq:{default}:processed:2019-11-14"},
 		{"critical", time.Date(2020, 12, 1, 1, 0, 1, 1, time.UTC), "asynq:{critical}:processed:2020-12-01"},
@@ -216,7 +216,7 @@ func TestProcessedKey(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got := ProcessedKey(tc.qname, tc.input)
+		got := ProcessedKey(tc.queueName, tc.input)
 		if got != tc.want {
 			t.Errorf("ProcessedKey(%v) = %q, want %q", tc.input, got, tc.want)
 		}
@@ -225,9 +225,9 @@ func TestProcessedKey(t *testing.T) {
 
 func TestFailedKey(t *testing.T) {
 	tests := []struct {
-		qname string
-		input time.Time
-		want  string
+		queueName string
+		input     time.Time
+		want      string
 	}{
 		{"default", time.Date(2019, 11, 14, 10, 30, 1, 1, time.UTC), "asynq:{default}:failed:2019-11-14"},
 		{"custom", time.Date(2020, 12, 1, 1, 0, 1, 1, time.UTC), "asynq:{custom}:failed:2020-12-01"},
@@ -235,7 +235,7 @@ func TestFailedKey(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got := FailedKey(tc.qname, tc.input)
+		got := FailedKey(tc.queueName, tc.input)
 		if got != tc.want {
 			t.Errorf("FailureKey(%v) = %q, want %q", tc.input, got, tc.want)
 		}
@@ -342,11 +342,11 @@ func TestUniqueKey(t *testing.T) {
 		return hex.EncodeToString(sum[:])
 	}
 	tests := []struct {
-		desc     string
-		qname    string
-		tasktype string
-		payload  []byte
-		want     string
+		desc      string
+		queueName string
+		tasktype  string
+		payload   []byte
+		want      string
 	}{
 		{
 			"with primitive types",
@@ -386,110 +386,110 @@ func TestUniqueKey(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got := UniqueKey(tc.qname, tc.tasktype, tc.payload)
+		got := UniqueKey(tc.queueName, tc.tasktype, tc.payload)
 		if got != tc.want {
-			t.Errorf("%s: UniqueKey(%q, %q, %v) = %q, want %q", tc.desc, tc.qname, tc.tasktype, tc.payload, got, tc.want)
+			t.Errorf("%s: UniqueKey(%q, %q, %v) = %q, want %q", tc.desc, tc.queueName, tc.tasktype, tc.payload, got, tc.want)
 		}
 	}
 }
 
 func TestGroupKey(t *testing.T) {
 	tests := []struct {
-		qname string
-		gkey  string
-		want  string
+		queueName string
+		gkey      string
+		want      string
 	}{
 		{
-			qname: "default",
-			gkey:  "mygroup",
-			want:  "asynq:{default}:g:mygroup",
+			queueName: "default",
+			gkey:      "mygroup",
+			want:      "asynq:{default}:g:mygroup",
 		},
 		{
-			qname: "custom",
-			gkey:  "foo",
-			want:  "asynq:{custom}:g:foo",
+			queueName: "custom",
+			gkey:      "foo",
+			want:      "asynq:{custom}:g:foo",
 		},
 	}
 
 	for _, tc := range tests {
-		got := GroupKey(tc.qname, tc.gkey)
+		got := GroupKey(tc.queueName, tc.gkey)
 		if got != tc.want {
-			t.Errorf("GroupKey(%q, %q) = %q, want %q", tc.qname, tc.gkey, got, tc.want)
+			t.Errorf("GroupKey(%q, %q) = %q, want %q", tc.queueName, tc.gkey, got, tc.want)
 		}
 	}
 }
 
 func TestAggregationSetKey(t *testing.T) {
 	tests := []struct {
-		qname string
-		gname string
-		setID string
-		want  string
+		queueName string
+		gname     string
+		setID     string
+		want      string
 	}{
 		{
-			qname: "default",
-			gname: "mygroup",
-			setID: "12345",
-			want:  "asynq:{default}:g:mygroup:12345",
+			queueName: "default",
+			gname:     "mygroup",
+			setID:     "12345",
+			want:      "asynq:{default}:g:mygroup:12345",
 		},
 		{
-			qname: "custom",
-			gname: "foo",
-			setID: "98765",
-			want:  "asynq:{custom}:g:foo:98765",
+			queueName: "custom",
+			gname:     "foo",
+			setID:     "98765",
+			want:      "asynq:{custom}:g:foo:98765",
 		},
 	}
 
 	for _, tc := range tests {
-		got := AggregationSetKey(tc.qname, tc.gname, tc.setID)
+		got := AggregationSetKey(tc.queueName, tc.gname, tc.setID)
 		if got != tc.want {
-			t.Errorf("AggregationSetKey(%q, %q, %q) = %q, want %q", tc.qname, tc.gname, tc.setID, got, tc.want)
+			t.Errorf("AggregationSetKey(%q, %q, %q) = %q, want %q", tc.queueName, tc.gname, tc.setID, got, tc.want)
 		}
 	}
 }
 
 func TestAllGroups(t *testing.T) {
 	tests := []struct {
-		qname string
-		want  string
+		queueName string
+		want      string
 	}{
 		{
-			qname: "default",
-			want:  "asynq:{default}:groups",
+			queueName: "default",
+			want:      "asynq:{default}:groups",
 		},
 		{
-			qname: "custom",
-			want:  "asynq:{custom}:groups",
+			queueName: "custom",
+			want:      "asynq:{custom}:groups",
 		},
 	}
 
 	for _, tc := range tests {
-		got := AllGroups(tc.qname)
+		got := AllGroups(tc.queueName)
 		if got != tc.want {
-			t.Errorf("AllGroups(%q) = %q, want %q", tc.qname, got, tc.want)
+			t.Errorf("AllGroups(%q) = %q, want %q", tc.queueName, got, tc.want)
 		}
 	}
 }
 
 func TestAllAggregationSets(t *testing.T) {
 	tests := []struct {
-		qname string
-		want  string
+		queueName string
+		want      string
 	}{
 		{
-			qname: "default",
-			want:  "asynq:{default}:aggregation_sets",
+			queueName: "default",
+			want:      "asynq:{default}:aggregation_sets",
 		},
 		{
-			qname: "custom",
-			want:  "asynq:{custom}:aggregation_sets",
+			queueName: "custom",
+			want:      "asynq:{custom}:aggregation_sets",
 		},
 	}
 
 	for _, tc := range tests {
-		got := AllAggregationSets(tc.qname)
+		got := AllAggregationSets(tc.queueName)
 		if got != tc.want {
-			t.Errorf("AllAggregationSets(%q) = %q, want %q", tc.qname, got, tc.want)
+			t.Errorf("AllAggregationSets(%q) = %q, want %q", tc.queueName, got, tc.want)
 		}
 	}
 }

@@ -125,29 +125,29 @@ func (a *aggregator) exec(t time.Time) {
 
 func (a *aggregator) aggregate(t time.Time) {
 	defer func() { <-a.sema /* release token */ }()
-	for _, qname := range a.queues {
-		groups, err := a.broker.ListGroups(qname)
+	for _, queueName := range a.queues {
+		groups, err := a.broker.ListGroups(queueName)
 		if err != nil {
-			a.logger.Errorf("Failed to list groups in queue: %q", qname)
+			a.logger.Errorf("Failed to list groups in queue: %q", queueName)
 			continue
 		}
 		for _, gname := range groups {
 			aggregationSetID, err := a.broker.AggregationCheck(
-				qname, gname, t, a.gracePeriod, a.maxDelay, a.maxSize)
+				queueName, gname, t, a.gracePeriod, a.maxDelay, a.maxSize)
 			if err != nil {
-				a.logger.Errorf("Failed to run aggregation check: queue=%q group=%q", qname, gname)
+				a.logger.Errorf("Failed to run aggregation check: queue=%q group=%q", queueName, gname)
 				continue
 			}
 			if aggregationSetID == "" {
-				a.logger.Debugf("No aggregation needed at this time: queue=%q group=%q", qname, gname)
+				a.logger.Debugf("No aggregation needed at this time: queue=%q group=%q", queueName, gname)
 				continue
 			}
 
 			// Aggregate and enqueue.
-			msgs, deadline, err := a.broker.ReadAggregationSet(qname, gname, aggregationSetID)
+			msgs, deadline, err := a.broker.ReadAggregationSet(queueName, gname, aggregationSetID)
 			if err != nil {
 				a.logger.Errorf("Failed to read aggregation set: queue=%q, group=%q, setID=%q",
-					qname, gname, aggregationSetID)
+					queueName, gname, aggregationSetID)
 				continue
 			}
 			tasks := make([]*Task, len(msgs))
@@ -156,15 +156,15 @@ func (a *aggregator) aggregate(t time.Time) {
 			}
 			aggregatedTask := a.ga.Aggregate(gname, tasks)
 			ctx, cancel := context.WithDeadline(context.Background(), deadline)
-			if _, err := a.client.EnqueueContext(ctx, aggregatedTask, Queue(qname)); err != nil {
+			if _, err := a.client.EnqueueContext(ctx, aggregatedTask, Queue(queueName)); err != nil {
 				a.logger.Errorf("Failed to enqueue aggregated task (queue=%q, group=%q, setID=%q): %v",
-					qname, gname, aggregationSetID, err)
+					queueName, gname, aggregationSetID, err)
 				cancel()
 				continue
 			}
-			if err := a.broker.DeleteAggregationSet(ctx, qname, gname, aggregationSetID); err != nil {
+			if err := a.broker.DeleteAggregationSet(ctx, queueName, gname, aggregationSetID); err != nil {
 				a.logger.Warnf("Failed to delete aggregation set: queue=%q, group=%q, setID=%q",
-					qname, gname, aggregationSetID)
+					queueName, gname, aggregationSetID)
 			}
 			cancel()
 		}

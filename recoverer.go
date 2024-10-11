@@ -102,9 +102,9 @@ func (r *recoverer) recoverLeaseExpiredTasks() {
 
 func (r *recoverer) recoverStaleAggregationSets() {
 	ctx := context.Background()
-	for _, qname := range r.queues {
-		if err := r.broker.ReclaimStaleAggregationSets(ctx, qname); err != nil {
-			r.logger.Warnf("recoverer: could not reclaim stale aggregation sets in queue %q: %v", qname, err)
+	for _, queueName := range r.queues {
+		if err := r.broker.ReclaimStaleAggregationSets(ctx, queueName); err != nil {
+			r.logger.Warnf("recoverer: could not reclaim stale aggregation sets in queue %q: %v", queueName, err)
 		}
 	}
 }

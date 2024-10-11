@@ -11,8 +11,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func newCompletedTask(qname, tasktype string, payload []byte, completedAt time.Time) *base.TaskMessage {
-	msg := h.NewTaskMessageWithQueue(tasktype, payload, qname)
+func newCompletedTask(queueName, tasktype string, payload []byte, completedAt time.Time) *base.TaskMessage {
+	msg := h.NewTaskMessageWithQueue(tasktype, payload, queueName)
 	msg.CompletedAt = completedAt.Unix()
 	return msg
 }
@@ -77,10 +77,10 @@ func TestJanitor(t *testing.T) {
 		time.Sleep(2 * interval) // make sure to let janitor run at least one time
 		janitor.shutdown()
 
-		for qname, want := range tc.wantCompleted {
-			got := h.GetCompletedEntries(t, r, qname)
+		for queueName, want := range tc.wantCompleted {
+			got := h.GetCompletedEntries(t, r, queueName)
 			if diff := cmp.Diff(want, got, h.SortZSetEntryOpt); diff != "" {
-				t.Errorf("diff found in %q after running janitor: (-want, +got)\n%s", base.CompletedKey(qname), diff)
+				t.Errorf("diff found in %q after running janitor: (-want, +got)\n%s", base.CompletedKey(queueName), diff)
 			}
 		}
 	}
