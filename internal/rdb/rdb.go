@@ -4,12 +4,12 @@ package rdb
 import (
 	"context"
 	"fmt"
-	"github.com/AsynqLab/asynq/internal/script"
 	"math"
 	"time"
 
 	"github.com/AsynqLab/asynq/internal/base"
 	"github.com/AsynqLab/asynq/internal/errors"
+	"github.com/AsynqLab/asynq/internal/script"
 	"github.com/AsynqLab/asynq/internal/timeutil"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -106,38 +106,6 @@ func (r *RDB) Enqueue(ctx context.Context, msg *base.TaskMessage) error {
 	return nil
 }
 
-// enqueueUniqueCmd enqueues the task message if the task is unique.
-//
-// KEYS[1] -> unique key
-// KEYS[2] -> asynq:{<queueName>}:t:<taskid>
-// KEYS[3] -> asynq:{<queueName>}:pending
-// --
-// ARGV[1] -> task ID
-// ARGV[2] -> uniqueness lock TTL
-// ARGV[3] -> task message data
-// ARGV[4] -> current unix time in nsec
-//
-// Output:
-// Returns 1 if successfully enqueued
-// Returns 0 if task ID conflicts with another task
-// Returns -1 if task unique key already exists
-var enqueueUniqueCmd = redis.NewScript(`
-local ok = redis.call("SET", KEYS[1], ARGV[1], "NX", "EX", ARGV[2])
-if not ok then
-  return -1
-end
-if redis.call("EXISTS", KEYS[2]) == 1 then
-  return 0
-end
-redis.call("HSET", KEYS[2],
-           "msg", ARGV[3],
-           "state", "pending",
-           "pending_since", ARGV[4],
-           "unique_key", KEYS[1])
-redis.call("LPUSH", KEYS[3], ARGV[1])
-return 1
-`)
-
 // EnqueueUnique inserts the given task if the task's uniqueness lock can be acquired.
 // It returns ErrDuplicateTask if the lock cannot be acquired.
 func (r *RDB) EnqueueUnique(ctx context.Context, msg *base.TaskMessage, ttl time.Duration) error {
@@ -160,7 +128,7 @@ func (r *RDB) EnqueueUnique(ctx context.Context, msg *base.TaskMessage, ttl time
 		encoded,
 		r.clock.Now().UnixNano(),
 	}
-	n, err := r.runScriptWithErrorCode(ctx, op, enqueueUniqueCmd, keys, argv...)
+	n, err := r.runScriptWithErrorCode(ctx, op, script.EnqueueUniqueCmd, keys, argv...)
 	if err != nil {
 		return err
 	}

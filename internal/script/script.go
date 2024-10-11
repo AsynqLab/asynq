@@ -18,15 +18,29 @@ func loadLuaScript(name string) (string, error) {
 	return string(content), nil
 }
 
-var EnqueueCmd *redis.Script
+var (
+	EnqueueCmd       *redis.Script
+	EnqueueUniqueCmd *redis.Script
+)
+
+const (
+	enqueueCmd       = "enqueue"
+	enqueueUniqueCmd = "enqueueUnique"
+)
 
 // Use this function to initialize your Redis scripts
 func init() {
-	enqueueLua, err := loadLuaScript("enqueue")
+	enqueueLua, err := loadLuaScript(enqueueCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	enqueueUniqueLua, err := loadLuaScript(enqueueUniqueCmd)
 	if err != nil {
 		panic(err)
 	}
 
 	// Initialize Redis scripts here
 	EnqueueCmd = redis.NewScript(enqueueLua)
+	EnqueueUniqueCmd = redis.NewScript(enqueueUniqueLua)
 }
