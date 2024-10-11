@@ -87,12 +87,12 @@ func newHeartbeater(params heartbeaterParams) *heartBeater {
 }
 
 func (h *heartBeater) shutdown() {
-	h.logger.Debug("Heartbeater shutting down...")
+	h.logger.Debug("HeartBeater shutting down...")
 	// Signal the heartBeater goroutine to stop.
 	h.done <- struct{}{}
 }
 
-// A workerInfo holds an active worker information.
+// A workerInfo holds active worker information.
 type workerInfo struct {
 	// the task message the worker is processing.
 	msg *base.TaskMessage
@@ -118,7 +118,7 @@ func (h *heartBeater) start(wg *sync.WaitGroup) {
 			select {
 			case <-h.done:
 				_ = h.broker.ClearServerState(h.host, h.pid, h.serverID)
-				h.logger.Debug("Heartbeater done")
+				h.logger.Debug("HeartBeater done")
 				timer.Stop()
 				return
 

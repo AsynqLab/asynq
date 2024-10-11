@@ -705,7 +705,7 @@ func (srv *Server) start() error {
 // Shutdown gracefully shuts down the server.
 // It gracefully closes all active workers. The server will wait for
 // active workers to finish processing tasks for duration specified in Config.ShutdownTimeout.
-// If worker didn't finish processing a task during the timeout, the task will be pushed back to Redis.
+// If a worker didn't finish processing a task during the timeout, the task will be pushed back to Redis.
 func (srv *Server) Shutdown() {
 	srv.state.mu.Lock()
 	if srv.state.value == srvStateNew || srv.state.value == srvStateClosed {
@@ -740,11 +740,11 @@ func (srv *Server) Shutdown() {
 // Stop can be used before shutting down the server to ensure that all
 // currently active tasks are processed before server shutdown.
 //
-// Stop does not shutdown the server, make sure to call Shutdown before exit.
+// Stop does not shut down the server, make sure to call Shutdown before exit.
 func (srv *Server) Stop() {
 	srv.state.mu.Lock()
 	if srv.state.value != srvStateActive {
-		// Invalid calll to Stop, server can only go from Active state to Stopped state.
+		// Invalid call to Stop, server can only go from Active state to Stopped state.
 		srv.state.mu.Unlock()
 		return
 	}

@@ -50,7 +50,7 @@ type processor struct {
 	// does not exceed the limit.
 	sema chan struct{}
 
-	// channel to communicate back to the long running "processor" goroutine.
+	// channel to communicate back to the long-running "processor" goroutine.
 	// once is used to send value to the channel only once.
 	done chan struct{}
 	once sync.Once
