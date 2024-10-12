@@ -237,23 +237,6 @@ func (r *RDB) MarkAsComplete(ctx context.Context, msg *base.TaskMessage) error {
 	return r.runScript(ctx, op, script.MarkAsCompleteCmd, keys, argv...)
 }
 
-// KEYS[1] -> asynq:{<queueName>}:active
-// KEYS[2] -> asynq:{<queueName>}:lease
-// KEYS[3] -> asynq:{<queueName>}:pending
-// KEYS[4] -> asynq:{<queueName>}:t:<task_id>
-// ARGV[1] -> task ID
-// Note: Use RPUSH to push to the head of the queue.
-var requeueCmd = redis.NewScript(`
-if redis.call("LREM", KEYS[1], 0, ARGV[1]) == 0 then
-  return redis.error_reply("NOT FOUND")
-end
-if redis.call("ZREM", KEYS[2], ARGV[1]) == 0 then
-  return redis.error_reply("NOT FOUND")
-end
-redis.call("RPUSH", KEYS[3], ARGV[1])
-redis.call("HSET", KEYS[4], "state", "pending")
-return redis.status_reply("OK")`)
-
 // Requeue moves the task from active queue to the specified queue.
 func (r *RDB) Requeue(ctx context.Context, msg *base.TaskMessage) error {
 	var op errors.Op = "rdb.Requeue"
@@ -263,33 +246,8 @@ func (r *RDB) Requeue(ctx context.Context, msg *base.TaskMessage) error {
 		base.PendingKey(msg.Queue),
 		base.TaskKey(msg.Queue, msg.ID),
 	}
-	return r.runScript(ctx, op, requeueCmd, keys, msg.ID)
+	return r.runScript(ctx, op, script.RequeueCmd, keys, msg.ID)
 }
-
-// KEYS[1] -> asynq:{<queueName>}:t:<task_id>
-// KEYS[2] -> asynq:{<queueName>}:g:<group_key>
-// KEYS[3] -> asynq:{<queueName>}:groups
-// -------
-// ARGV[1] -> task message data
-// ARGV[2] -> task ID
-// ARGV[3] -> current time in Unix time
-// ARGV[4] -> group key
-//
-// Output:
-// Returns 1 if successfully added
-// Returns 0 if task ID already exists
-var addToGroupCmd = redis.NewScript(`
-if redis.call("EXISTS", KEYS[1]) == 1 then
-	return 0
-end
-redis.call("HSET", KEYS[1],
-           "msg", ARGV[1],
-           "state", "aggregating",
-	       "group", ARGV[4])
-redis.call("ZADD", KEYS[2], ARGV[3], ARGV[2])
-redis.call("SADD", KEYS[3], ARGV[4])
-return 1
-`)
 
 func (r *RDB) AddToGroup(ctx context.Context, msg *base.TaskMessage, groupKey string) error {
 	var op errors.Op = "rdb.AddToGroup"
@@ -311,7 +269,7 @@ func (r *RDB) AddToGroup(ctx context.Context, msg *base.TaskMessage, groupKey st
 		r.clock.Now().Unix(),
 		groupKey,
 	}
-	n, err := r.runScriptWithErrorCode(ctx, op, addToGroupCmd, keys, argv...)
+	n, err := r.runScriptWithErrorCode(ctx, op, script.AddToGroupCmd, keys, argv...)
 	if err != nil {
 		return err
 	}
@@ -320,38 +278,6 @@ func (r *RDB) AddToGroup(ctx context.Context, msg *base.TaskMessage, groupKey st
 	}
 	return nil
 }
-
-// KEYS[1] -> asynq:{<queueName>}:t:<task_id>
-// KEYS[2] -> asynq:{<queueName>}:g:<group_key>
-// KEYS[3] -> asynq:{<queueName>}:groups
-// KEYS[4] -> unique key
-// -------
-// ARGV[1] -> task message data
-// ARGV[2] -> task ID
-// ARGV[3] -> current time in Unix time
-// ARGV[4] -> group key
-// ARGV[5] -> uniqueness lock TTL
-//
-// Output:
-// Returns 1 if successfully added
-// Returns 0 if task ID already exists
-// Returns -1 if task unique key already exists
-var addToGroupUniqueCmd = redis.NewScript(`
-local ok = redis.call("SET", KEYS[4], ARGV[2], "NX", "EX", ARGV[5])
-if not ok then
-  return -1
-end
-if redis.call("EXISTS", KEYS[1]) == 1 then
-	return 0
-end
-redis.call("HSET", KEYS[1],
-           "msg", ARGV[1],
-           "state", "aggregating",
-	       "group", ARGV[4])
-redis.call("ZADD", KEYS[2], ARGV[3], ARGV[2])
-redis.call("SADD", KEYS[3], ARGV[4])
-return 1
-`)
 
 func (r *RDB) AddToGroupUnique(ctx context.Context, msg *base.TaskMessage, groupKey string, ttl time.Duration) error {
 	var op errors.Op = "rdb.AddToGroupUnique"
@@ -375,7 +301,7 @@ func (r *RDB) AddToGroupUnique(ctx context.Context, msg *base.TaskMessage, group
 		groupKey,
 		int(ttl.Seconds()),
 	}
-	n, err := r.runScriptWithErrorCode(ctx, op, addToGroupUniqueCmd, keys, argv...)
+	n, err := r.runScriptWithErrorCode(ctx, op, script.AddToGroupUniqueCmd, keys, argv...)
 	if err != nil {
 		return err
 	}
@@ -387,27 +313,6 @@ func (r *RDB) AddToGroupUnique(ctx context.Context, msg *base.TaskMessage, group
 	}
 	return nil
 }
-
-// KEYS[1] -> asynq:{<queueName>}:t:<task_id>
-// KEYS[2] -> asynq:{<queueName>}:scheduled
-// -------
-// ARGV[1] -> task message data
-// ARGV[2] -> process_at time in Unix time
-// ARGV[3] -> task ID
-//
-// Output:
-// Returns 1 if successfully enqueued
-// Returns 0 if task ID already exists
-var scheduleCmd = redis.NewScript(`
-if redis.call("EXISTS", KEYS[1]) == 1 then
-	return 0
-end
-redis.call("HSET", KEYS[1],
-           "msg", ARGV[1],
-           "state", "scheduled")
-redis.call("ZADD", KEYS[2], ARGV[2], ARGV[3])
-return 1
-`)
 
 // Schedule adds the task to the scheduled set to be processed in the future.
 func (r *RDB) Schedule(ctx context.Context, msg *base.TaskMessage, processAt time.Time) error {
@@ -428,7 +333,7 @@ func (r *RDB) Schedule(ctx context.Context, msg *base.TaskMessage, processAt tim
 		processAt.Unix(),
 		msg.ID,
 	}
-	n, err := r.runScriptWithErrorCode(ctx, op, scheduleCmd, keys, argv...)
+	n, err := r.runScriptWithErrorCode(ctx, op, script.ScheduleCmd, keys, argv...)
 	if err != nil {
 		return err
 	}
@@ -437,35 +342,6 @@ func (r *RDB) Schedule(ctx context.Context, msg *base.TaskMessage, processAt tim
 	}
 	return nil
 }
-
-// KEYS[1] -> unique key
-// KEYS[2] -> asynq:{<queueName>}:t:<task_id>
-// KEYS[3] -> asynq:{<queueName>}:scheduled
-// -------
-// ARGV[1] -> task ID
-// ARGV[2] -> uniqueness lock TTL
-// ARGV[3] -> score (process_at timestamp)
-// ARGV[4] -> task message
-//
-// Output:
-// Returns 1 if successfully scheduled
-// Returns 0 if task ID already exists
-// Returns -1 if task unique key already exists
-var scheduleUniqueCmd = redis.NewScript(`
-local ok = redis.call("SET", KEYS[1], ARGV[1], "NX", "EX", ARGV[2])
-if not ok then
-  return -1
-end
-if redis.call("EXISTS", KEYS[2]) == 1 then
-  return 0
-end
-redis.call("HSET", KEYS[2],
-           "msg", ARGV[4],
-           "state", "scheduled",
-           "unique_key", KEYS[1])
-redis.call("ZADD", KEYS[3], ARGV[3], ARGV[1])
-return 1
-`)
 
 // ScheduleUnique adds the task to the backlog queue to be processed in the future if the uniqueness lock can be acquired.
 // It returns ErrDuplicateTask if the lock cannot be acquired.
@@ -489,7 +365,7 @@ func (r *RDB) ScheduleUnique(ctx context.Context, msg *base.TaskMessage, process
 		processAt.Unix(),
 		encoded,
 	}
-	n, err := r.runScriptWithErrorCode(ctx, op, scheduleUniqueCmd, keys, argv...)
+	n, err := r.runScriptWithErrorCode(ctx, op, script.ScheduleUniqueCmd, keys, argv...)
 	if err != nil {
 		return err
 	}

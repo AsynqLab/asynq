@@ -51,6 +51,11 @@ var (
 	DoneUniqueCmd           *redis.Script
 	MarkAsCompleteCmd       *redis.Script
 	MarkAsCompleteUniqueCmd *redis.Script
+	RequeueCmd              *redis.Script
+	AddToGroupCmd           *redis.Script
+	AddToGroupUniqueCmd     *redis.Script
+	ScheduleCmd             *redis.Script
+	ScheduleUniqueCmd       *redis.Script
 )
 
 const (
@@ -61,6 +66,11 @@ const (
 	doneUniqueCmd           = "done_unique"
 	markAsCompleteCmd       = "mark_as_completed"
 	markAsCompleteUniqueCmd = "mark_as_completed_unique"
+	requeueCmd              = "requeue"
+	addToGroupCmd           = "add_to_group"
+	addToGroupUniqueCmd     = "add_to_group_unique"
+	scheduleCmd             = "schedule"
+	scheduleUniqueCmd       = "schedule_unique"
 )
 
 func init() {
@@ -96,6 +106,31 @@ func init() {
 	}
 
 	MarkAsCompleteUniqueCmd, err = loadLuaScript(markAsCompleteUniqueCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	RequeueCmd, err = loadLuaScript(requeueCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	AddToGroupCmd, err = loadLuaScript(addToGroupCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	AddToGroupUniqueCmd, err = loadLuaScript(addToGroupUniqueCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	ScheduleCmd, err = loadLuaScript(scheduleCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	ScheduleUniqueCmd, err = loadLuaScript(scheduleUniqueCmd)
 	if err != nil {
 		panic(err)
 	}
