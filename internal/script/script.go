@@ -55,12 +55,12 @@ var (
 
 const (
 	enqueueCmd              = "enqueue"
-	enqueueUniqueCmd        = "enqueueUnique"
+	enqueueUniqueCmd        = "enqueue_unique"
 	dequeueCmd              = "dequeue"
 	doneCmd                 = "done"
-	doneUniqueCmd           = "doneUnique"
-	markAsCompleteCmd       = "markAsComplete"
-	markAsCompleteUniqueCmd = "markAsCompleteUnique"
+	doneUniqueCmd           = "done_unique"
+	markAsCompleteCmd       = "mark_as_completed"
+	markAsCompleteUniqueCmd = "mark_as_completed_unique"
 )
 
 func init() {

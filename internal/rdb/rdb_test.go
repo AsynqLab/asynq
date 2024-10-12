@@ -962,6 +962,8 @@ func TestMarkAsComplete(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client) // clean up db before each test case
 		h.SeedAllLease(t, r.client, tc.lease)
 		h.SeedAllActiveQueues(t, r.client, tc.active)
@@ -970,7 +972,7 @@ func TestMarkAsComplete(t *testing.T) {
 			for _, msg := range msgs {
 				// Set uniqueness lock if unique key is present.
 				if len(msg.UniqueKey) > 0 {
-					err := r.client.SetNX(context.Background(), msg.UniqueKey, msg.ID, time.Minute).Err()
+					err := r.client.SetNX(ctx, msg.UniqueKey, msg.ID, time.Minute).Err()
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -978,7 +980,7 @@ func TestMarkAsComplete(t *testing.T) {
 			}
 		}
 
-		err := r.MarkAsComplete(context.Background(), tc.target)
+		err := r.MarkAsComplete(ctx, tc.target)
 		if err != nil {
 			t.Errorf("%s; (*RDB).MarkAsCompleted(task) = %v, want nil", tc.desc, err)
 			continue
@@ -1007,17 +1009,17 @@ func TestMarkAsComplete(t *testing.T) {
 		}
 
 		processedKey := base.ProcessedKey(tc.target.Queue, time.Now())
-		gotProcessed := r.client.Get(context.Background(), processedKey).Val()
+		gotProcessed := r.client.Get(ctx, processedKey).Val()
 		if gotProcessed != "1" {
 			t.Errorf("%s; GET %q = %q, want 1", tc.desc, processedKey, gotProcessed)
 		}
 
-		gotTTL := r.client.TTL(context.Background(), processedKey).Val()
+		gotTTL := r.client.TTL(ctx, processedKey).Val()
 		if gotTTL > statsTTL {
 			t.Errorf("%s; TTL %q = %v, want less than or equal to %v", tc.desc, processedKey, gotTTL, statsTTL)
 		}
 
-		if len(tc.target.UniqueKey) > 0 && r.client.Exists(context.Background(), tc.target.UniqueKey).Val() != 0 {
+		if len(tc.target.UniqueKey) > 0 && r.client.Exists(ctx, tc.target.UniqueKey).Val() != 0 {
 			t.Errorf("%s; Uniqueness lock %q still exists", tc.desc, tc.target.UniqueKey)
 		}
 	}
