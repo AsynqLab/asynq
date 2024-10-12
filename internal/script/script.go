@@ -99,9 +99,4 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-
-	MarkAsCompleteUniqueCmd, err = loadLuaScript(markAsCompleteCmd)
-	if err != nil {
-		panic(err)
-	}
 }
