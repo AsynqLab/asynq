@@ -378,50 +378,6 @@ func (r *RDB) ScheduleUnique(ctx context.Context, msg *base.TaskMessage, process
 	return nil
 }
 
-// KEYS[1] -> asynq:{<queueName>}:t:<task_id>
-// KEYS[2] -> asynq:{<queueName>}:active
-// KEYS[3] -> asynq:{<queueName>}:lease
-// KEYS[4] -> asynq:{<queueName>}:retry
-// KEYS[5] -> asynq:{<queueName>}:processed:<yyyy-mm-dd>
-// KEYS[6] -> asynq:{<queueName>}:failed:<yyyy-mm-dd>
-// KEYS[7] -> asynq:{<queueName>}:processed
-// KEYS[8] -> asynq:{<queueName>}:failed
-// -------
-// ARGV[1] -> task ID
-// ARGV[2] -> updated base.TaskMessage value
-// ARGV[3] -> retry_at UNIX timestamp
-// ARGV[4] -> stats expiration timestamp
-// ARGV[5] -> is_failure (bool)
-// ARGV[6] -> max int64 value
-var retryCmd = redis.NewScript(`
-if redis.call("LREM", KEYS[2], 0, ARGV[1]) == 0 then
-  return redis.error_reply("NOT FOUND")
-end
-if redis.call("ZREM", KEYS[3], ARGV[1]) == 0 then
-  return redis.error_reply("NOT FOUND")
-end
-redis.call("ZADD", KEYS[4], ARGV[3], ARGV[1])
-redis.call("HSET", KEYS[1], "msg", ARGV[2], "state", "retry")
-if tonumber(ARGV[5]) == 1 then
-	local n = redis.call("INCR", KEYS[5])
-	if tonumber(n) == 1 then
-		redis.call("EXPIREAT", KEYS[5], ARGV[4])
-	end
-	local m = redis.call("INCR", KEYS[6])
-	if tonumber(m) == 1 then
-		redis.call("EXPIREAT", KEYS[6], ARGV[4])
-	end
-    local total = redis.call("GET", KEYS[7])
-    if tonumber(total) == tonumber(ARGV[6]) then
-    	redis.call("SET", KEYS[7], 1)
-    	redis.call("SET", KEYS[8], 1)
-    else
-    	redis.call("INCR", KEYS[7])
-    	redis.call("INCR", KEYS[8])
-    end
-end
-return redis.status_reply("OK")`)
-
 // Retry moves the task from active to retry queue.
 // It also annotates the message with the given error message and
 // if isFailure is true increments the retried counter.
@@ -457,58 +413,13 @@ func (r *RDB) Retry(ctx context.Context, msg *base.TaskMessage, processAt time.T
 		isFailure,
 		int64(math.MaxInt64),
 	}
-	return r.runScript(ctx, op, retryCmd, keys, argv...)
+	return r.runScript(ctx, op, script.RetryCmd, keys, argv...)
 }
 
 const (
 	maxArchiveSize           = 10000 // maximum number of tasks in archive
 	archivedExpirationInDays = 90    // number of days before an archived task gets deleted permanently
 )
-
-// KEYS[1] -> asynq:{<queueName>}:t:<task_id>
-// KEYS[2] -> asynq:{<queueName>}:active
-// KEYS[3] -> asynq:{<queueName>}:lease
-// KEYS[4] -> asynq:{<queueName>}:archived
-// KEYS[5] -> asynq:{<queueName>}:processed:<yyyy-mm-dd>
-// KEYS[6] -> asynq:{<queueName>}:failed:<yyyy-mm-dd>
-// KEYS[7] -> asynq:{<queueName>}:processed
-// KEYS[8] -> asynq:{<queueName>}:failed
-// -------
-// ARGV[1] -> task ID
-// ARGV[2] -> updated base.TaskMessage value
-// ARGV[3] -> died_at UNIX timestamp
-// ARGV[4] -> cutoff timestamp (e.g., 90 days ago)
-// ARGV[5] -> max number of tasks in archive (e.g., 100)
-// ARGV[6] -> stats expiration timestamp
-// ARGV[7] -> max int64 value
-var archiveCmd = redis.NewScript(`
-if redis.call("LREM", KEYS[2], 0, ARGV[1]) == 0 then
-  return redis.error_reply("NOT FOUND")
-end
-if redis.call("ZREM", KEYS[3], ARGV[1]) == 0 then
-  return redis.error_reply("NOT FOUND")
-end
-redis.call("ZADD", KEYS[4], ARGV[3], ARGV[1])
-redis.call("ZREMRANGEBYSCORE", KEYS[4], "-inf", ARGV[4])
-redis.call("ZREMRANGEBYRANK", KEYS[4], 0, -ARGV[5])
-redis.call("HSET", KEYS[1], "msg", ARGV[2], "state", "archived")
-local n = redis.call("INCR", KEYS[5])
-if tonumber(n) == 1 then
-	redis.call("EXPIREAT", KEYS[5], ARGV[6])
-end
-local m = redis.call("INCR", KEYS[6])
-if tonumber(m) == 1 then
-	redis.call("EXPIREAT", KEYS[6], ARGV[6])
-end
-local total = redis.call("GET", KEYS[7])
-if tonumber(total) == tonumber(ARGV[7]) then
-   	redis.call("SET", KEYS[7], 1)
-   	redis.call("SET", KEYS[8], 1)
-else
-  	redis.call("INCR", KEYS[7])
-   	redis.call("INCR", KEYS[8])
-end
-return redis.status_reply("OK")`)
 
 // Archive sends the given task to archive, attaching the error message to the task.
 // It also trims the archive by timestamp and set size.
@@ -543,52 +454,25 @@ func (r *RDB) Archive(ctx context.Context, msg *base.TaskMessage, errMsg string)
 		expireAt.Unix(),
 		int64(math.MaxInt64),
 	}
-	return r.runScript(ctx, op, archiveCmd, keys, argv...)
+	return r.runScript(ctx, op, script.ArchiveCmd, keys, argv...)
 }
 
 // ForwardIfReady checks scheduled and retry sets of the given queues
 // and move any tasks that are ready to be processed to the pending set.
-func (r *RDB) ForwardIfReady(queueNames ...string) error {
+func (r *RDB) ForwardIfReady(ctx context.Context, queueNames ...string) error {
 	var op errors.Op = "rdb.ForwardIfReady"
 	for _, queueName := range queueNames {
-		if err := r.forwardAll(queueName); err != nil {
+		if err := r.forwardAll(ctx, queueName); err != nil {
 			return errors.E(op, errors.CanonicalCode(err), err)
 		}
 	}
 	return nil
 }
 
-// KEYS[1] -> source queue (e.g. asynq:{<queueName>:scheduled or asynq:{<queueName>}:retry})
-// KEYS[2] -> asynq:{<queueName>}:pending
-// ARGV[1] -> current unix time in seconds
-// ARGV[2] -> task key prefix
-// ARGV[3] -> current unix time in nsec
-// ARGV[4] -> group key prefix
-// Note: Script moves tasks up to 100 at a time to keep the runtime of script short.
-var forwardCmd = redis.NewScript(`
-local ids = redis.call("ZRANGEBYSCORE", KEYS[1], "-inf", ARGV[1], "LIMIT", 0, 100)
-for _, id in ipairs(ids) do
-	local taskKey = ARGV[2] .. id
-	local group = redis.call("HGET", taskKey, "group")
-	if group and group ~= '' then
-	    redis.call("ZADD", ARGV[4] .. group, ARGV[1], id)
-		redis.call("ZREM", KEYS[1], id)
-		redis.call("HSET", taskKey,
-				   "state", "aggregating")
-	else
-		redis.call("LPUSH", KEYS[2], id)
-		redis.call("ZREM", KEYS[1], id)
-		redis.call("HSET", taskKey,
-				   "state", "pending",
-				   "pending_since", ARGV[3])
-	end
-end
-return table.getn(ids)`)
-
 // forward moves tasks with a score less than the current unix time from the delayed (i.e., scheduled | retry) zset
 // to the pending list or group set.
 // It returns the number of tasks moved.
-func (r *RDB) forward(delayedKey, pendingKey, taskKeyPrefix, groupKeyPrefix string) (int, error) {
+func (r *RDB) forward(ctx context.Context, delayedKey, pendingKey, taskKeyPrefix, groupKeyPrefix string) (int, error) {
 	now := r.clock.Now()
 	keys := []string{delayedKey, pendingKey}
 	argv := []interface{}{
@@ -597,7 +481,7 @@ func (r *RDB) forward(delayedKey, pendingKey, taskKeyPrefix, groupKeyPrefix stri
 		now.UnixNano(),
 		groupKeyPrefix,
 	}
-	res, err := forwardCmd.Run(context.Background(), r.client, keys, argv...).Result()
+	res, err := script.ForwardCmd.Run(ctx, r.client, keys, argv...).Result()
 	if err != nil {
 		return 0, errors.E(errors.Internal, fmt.Sprintf("redis eval error: %v", err))
 	}
@@ -610,7 +494,7 @@ func (r *RDB) forward(delayedKey, pendingKey, taskKeyPrefix, groupKeyPrefix stri
 
 // forwardAll checks for tasks in scheduled/retry state that are ready to be run, and updates
 // their state to "pending" or "aggregating".
-func (r *RDB) forwardAll(queueName string) (err error) {
+func (r *RDB) forwardAll(ctx context.Context, queueName string) (err error) {
 	delayedKeys := []string{base.ScheduledKey(queueName), base.RetryKey(queueName)}
 	pendingKey := base.PendingKey(queueName)
 	taskKeyPrefix := base.TaskKeyPrefix(queueName)
@@ -618,7 +502,7 @@ func (r *RDB) forwardAll(queueName string) (err error) {
 	for _, delayedKey := range delayedKeys {
 		n := 1
 		for n != 0 {
-			n, err = r.forward(delayedKey, pendingKey, taskKeyPrefix, groupKeyPrefix)
+			n, err = r.forward(ctx, delayedKey, pendingKey, taskKeyPrefix, groupKeyPrefix)
 			if err != nil {
 				return err
 			}

@@ -2192,7 +2192,6 @@ func TestForwardIfReadyWithGroup(t *testing.T) {
 	t4.GroupKey = "critical_task_group"
 	t5.GroupKey = "minor_task_group"
 
-	ctx := context.Background()
 	secondAgo := now.Add(-time.Second)
 
 	tests := []struct {
@@ -2273,11 +2272,13 @@ func TestForwardIfReadyWithGroup(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client) // clean up db before each test case
 		h.SeedAllScheduledQueues(t, r.client, tc.scheduled)
 		h.SeedAllRetryQueues(t, r.client, tc.retry)
 
-		err := r.ForwardIfReady(tc.queueNames...)
+		err := r.ForwardIfReady(ctx, tc.queueNames...)
 		if err != nil {
 			t.Errorf("(*RDB).ForwardIfReady(%v) = %v, want nil", tc.queueNames, err)
 			continue
@@ -2432,6 +2433,8 @@ func TestForwardIfReady(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		ctx := context.Background()
+
 		h.FlushDB(t, r.client) // clean up db before each test case
 		h.SeedAllScheduledQueues(t, r.client, tc.scheduled)
 		h.SeedAllRetryQueues(t, r.client, tc.retry)
@@ -2439,7 +2442,7 @@ func TestForwardIfReady(t *testing.T) {
 		now := time.Now()
 		r.SetClock(timeutil.NewSimulatedClock(now))
 
-		err := r.ForwardIfReady(tc.queueNames...)
+		err := r.ForwardIfReady(ctx, tc.queueNames...)
 		if err != nil {
 			t.Errorf("(*RDB).ForwardIfReady(%v) = %v, want nil", tc.queueNames, err)
 			continue

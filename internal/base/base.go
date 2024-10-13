@@ -682,7 +682,7 @@ type Broker interface {
 	ScheduleUnique(ctx context.Context, msg *TaskMessage, processAt time.Time, ttl time.Duration) error
 	Retry(ctx context.Context, msg *TaskMessage, processAt time.Time, errMsg string, isFailure bool) error
 	Archive(ctx context.Context, msg *TaskMessage, errMsg string) error
-	ForwardIfReady(queueNames ...string) error
+	ForwardIfReady(ctx context.Context, queueNames ...string) error
 
 	/*
 		Group aggregation related methods

@@ -132,13 +132,13 @@ func (tb *TestBroker) Archive(ctx context.Context, msg *base.TaskMessage, errMsg
 	return tb.real.Archive(ctx, msg, errMsg)
 }
 
-func (tb *TestBroker) ForwardIfReady(queueNames ...string) error {
+func (tb *TestBroker) ForwardIfReady(ctx context.Context, queueNames ...string) error {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 	if tb.sleeping {
 		return errRedisDown
 	}
-	return tb.real.ForwardIfReady(queueNames...)
+	return tb.real.ForwardIfReady(ctx, queueNames...)
 }
 
 func (tb *TestBroker) DeleteExpiredCompletedTasks(ctx context.Context, queueName string, batchSize int) error {

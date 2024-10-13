@@ -1,6 +1,7 @@
 package asynq
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -67,7 +68,8 @@ func (f *forwarder) start(wg *sync.WaitGroup) {
 }
 
 func (f *forwarder) exec() {
-	if err := f.broker.ForwardIfReady(f.queues...); err != nil {
+	ctx := context.Background()
+	if err := f.broker.ForwardIfReady(ctx, f.queues...); err != nil {
 		f.logger.Errorf("Failed to forward scheduled tasks: %v", err)
 	}
 }

@@ -261,12 +261,14 @@ func BenchmarkCheckAndEnqueue(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
+		ctx := context.Background()
+
 		b.StopTimer()
 		testutil.FlushDB(b, r.client)
 		testutil.SeedScheduledQueue(b, r.client, zs, base.DefaultQueueName)
 		b.StartTimer()
 
-		if err := r.ForwardIfReady(base.DefaultQueueName); err != nil {
+		if err := r.ForwardIfReady(ctx, base.DefaultQueueName); err != nil {
 			b.Fatalf("ForwardIfReady failed: %v", err)
 		}
 	}

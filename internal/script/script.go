@@ -56,6 +56,9 @@ var (
 	AddToGroupUniqueCmd     *redis.Script
 	ScheduleCmd             *redis.Script
 	ScheduleUniqueCmd       *redis.Script
+	RetryCmd                *redis.Script
+	ArchiveCmd              *redis.Script
+	ForwardCmd              *redis.Script
 )
 
 const (
@@ -71,6 +74,9 @@ const (
 	addToGroupUniqueCmd     = "add_to_group_unique"
 	scheduleCmd             = "schedule"
 	scheduleUniqueCmd       = "schedule_unique"
+	retryCmd                = "retry"
+	archiveCmd              = "archive"
+	forwardCmd              = "forward"
 )
 
 func init() {
@@ -131,6 +137,21 @@ func init() {
 	}
 
 	ScheduleUniqueCmd, err = loadLuaScript(scheduleUniqueCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	RetryCmd, err = loadLuaScript(retryCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	ArchiveCmd, err = loadLuaScript(archiveCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	ForwardCmd, err = loadLuaScript(forwardCmd)
 	if err != nil {
 		panic(err)
 	}
