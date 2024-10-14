@@ -198,7 +198,6 @@ func (r *RDB) Done(ctx context.Context, msg *base.TaskMessage) error {
 	// Note: We cannot pass empty unique key when running this script in redis-cluster.
 	if len(msg.UniqueKey) > 0 {
 		keys = append(keys, msg.UniqueKey)
-		return r.runScript(ctx, op, script.DoneUniqueCmd, keys, argv...)
 	}
 	return r.runScript(ctx, op, script.DoneCmd, keys, argv...)
 }
@@ -232,7 +231,6 @@ func (r *RDB) MarkAsComplete(ctx context.Context, msg *base.TaskMessage) error {
 	// Note: We cannot pass empty unique key when running this script in redis-cluster.
 	if len(msg.UniqueKey) > 0 {
 		keys = append(keys, msg.UniqueKey)
-		return r.runScript(ctx, op, script.MarkAsCompleteUniqueCmd, keys, argv...)
 	}
 	return r.runScript(ctx, op, script.MarkAsCompleteCmd, keys, argv...)
 }
@@ -301,7 +299,7 @@ func (r *RDB) AddToGroupUnique(ctx context.Context, msg *base.TaskMessage, group
 		groupKey,
 		int(ttl.Seconds()),
 	}
-	n, err := r.runScriptWithErrorCode(ctx, op, script.AddToGroupUniqueCmd, keys, argv...)
+	n, err := r.runScriptWithErrorCode(ctx, op, script.AddToGroupCmd, keys, argv...)
 	if err != nil {
 		return err
 	}
@@ -355,17 +353,17 @@ func (r *RDB) ScheduleUnique(ctx context.Context, msg *base.TaskMessage, process
 		return errors.E(op, errors.Unknown, &errors.RedisCommandError{Command: "sadd", Err: err})
 	}
 	keys := []string{
-		msg.UniqueKey,
 		base.TaskKey(msg.Queue, msg.ID),
 		base.ScheduledKey(msg.Queue),
+		msg.UniqueKey,
 	}
 	argv := []interface{}{
+		encoded,
+		processAt.Unix(),
 		msg.ID,
 		int(ttl.Seconds()),
-		processAt.Unix(),
-		encoded,
 	}
-	n, err := r.runScriptWithErrorCode(ctx, op, script.ScheduleUniqueCmd, keys, argv...)
+	n, err := r.runScriptWithErrorCode(ctx, op, script.ScheduleCmd, keys, argv...)
 	if err != nil {
 		return err
 	}

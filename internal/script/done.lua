@@ -3,10 +3,18 @@
 -- KEYS[3] -> asynq:{<queueName>}:t:<task_id>
 -- KEYS[4] -> asynq:{<queueName>}:processed:<yyyy-mm-dd>
 -- KEYS[5] -> asynq:{<queueName>}:processed
--- -------
+-- KEYS[6] -> unique key (optional, only for unique tasks)
+--
 -- ARGV[1] -> task ID
 -- ARGV[2] -> stats expiration timestamp
 -- ARGV[3] -> max int64 value
+--
+-- Output:
+-- Returns "OK" if successfully marked as done
+-- Returns error if task is not found
+
+local is_unique = (#KEYS == 6)
+
 if redis.call("LREM", KEYS[1], 0, ARGV[1]) == 0 then
     return redis.error_reply("NOT FOUND")
 end
@@ -26,4 +34,11 @@ if tonumber(total) == tonumber(ARGV[3]) then
 else
     redis.call("INCR", KEYS[5])
 end
+
+if is_unique then
+    if redis.call("GET", KEYS[6]) == ARGV[1] then
+        redis.call("DEL", KEYS[6])
+    end
+end
+
 return redis.status_reply("OK")

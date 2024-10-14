@@ -1,4 +1,3 @@
---
 -- KEYS[1] -> asynq:{<queueName>}:t:<task_id>
 -- KEYS[2] -> asynq:{<queueName>}:pending
 -- KEYS[3] -> unique key (optional, only for unique enqueue)
