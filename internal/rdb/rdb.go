@@ -92,8 +92,8 @@ func (r *RDB) Enqueue(ctx context.Context, msg *base.TaskMessage) error {
 		base.PendingKey(msg.Queue),
 	}
 	argv := []interface{}{
-		encoded,
 		msg.ID,
+		encoded,
 		r.clock.Now().UnixNano(),
 	}
 	n, err := r.runScriptWithErrorCode(ctx, op, script.EnqueueCmd, keys, argv...)
@@ -118,17 +118,17 @@ func (r *RDB) EnqueueUnique(ctx context.Context, msg *base.TaskMessage, ttl time
 		return errors.E(op, errors.Unknown, &errors.RedisCommandError{Command: "sadd", Err: err})
 	}
 	keys := []string{
-		msg.UniqueKey,
 		base.TaskKey(msg.Queue, msg.ID),
 		base.PendingKey(msg.Queue),
+		msg.UniqueKey,
 	}
 	argv := []interface{}{
 		msg.ID,
-		int(ttl.Seconds()),
 		encoded,
 		r.clock.Now().UnixNano(),
+		int(ttl.Seconds()),
 	}
-	n, err := r.runScriptWithErrorCode(ctx, op, script.EnqueueUniqueCmd, keys, argv...)
+	n, err := r.runScriptWithErrorCode(ctx, op, script.EnqueueCmd, keys, argv...)
 	if err != nil {
 		return err
 	}

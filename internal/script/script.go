@@ -45,7 +45,6 @@ func loadLuaScript(name string) (*redis.Script, error) {
 
 var (
 	EnqueueCmd                     *redis.Script
-	EnqueueUniqueCmd               *redis.Script
 	DequeueCmd                     *redis.Script
 	DoneCmd                        *redis.Script
 	DoneUniqueCmd                  *redis.Script
@@ -73,7 +72,6 @@ var (
 
 const (
 	enqueueCmd                     = "enqueue"
-	enqueueUniqueCmd               = "enqueue_unique"
 	dequeueCmd                     = "dequeue"
 	doneCmd                        = "done"
 	doneUniqueCmd                  = "done_unique"
@@ -102,11 +100,6 @@ const (
 func init() {
 	var err error
 	EnqueueCmd, err = loadLuaScript(enqueueCmd)
-	if err != nil {
-		panic(err)
-	}
-
-	EnqueueUniqueCmd, err = loadLuaScript(enqueueUniqueCmd)
 	if err != nil {
 		panic(err)
 	}
