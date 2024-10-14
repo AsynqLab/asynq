@@ -44,39 +44,49 @@ func loadLuaScript(name string) (*redis.Script, error) {
 }
 
 var (
-	EnqueueCmd              *redis.Script
-	EnqueueUniqueCmd        *redis.Script
-	DequeueCmd              *redis.Script
-	DoneCmd                 *redis.Script
-	DoneUniqueCmd           *redis.Script
-	MarkAsCompleteCmd       *redis.Script
-	MarkAsCompleteUniqueCmd *redis.Script
-	RequeueCmd              *redis.Script
-	AddToGroupCmd           *redis.Script
-	AddToGroupUniqueCmd     *redis.Script
-	ScheduleCmd             *redis.Script
-	ScheduleUniqueCmd       *redis.Script
-	RetryCmd                *redis.Script
-	ArchiveCmd              *redis.Script
-	ForwardCmd              *redis.Script
+	EnqueueCmd                     *redis.Script
+	EnqueueUniqueCmd               *redis.Script
+	DequeueCmd                     *redis.Script
+	DoneCmd                        *redis.Script
+	DoneUniqueCmd                  *redis.Script
+	MarkAsCompleteCmd              *redis.Script
+	MarkAsCompleteUniqueCmd        *redis.Script
+	RequeueCmd                     *redis.Script
+	AddToGroupCmd                  *redis.Script
+	AddToGroupUniqueCmd            *redis.Script
+	ScheduleCmd                    *redis.Script
+	ScheduleUniqueCmd              *redis.Script
+	RetryCmd                       *redis.Script
+	ArchiveCmd                     *redis.Script
+	ForwardCmd                     *redis.Script
+	AggregationCheckCmd            *redis.Script
+	ReadAggregationSetCmd          *redis.Script
+	DeleteAggregationSetCmd        *redis.Script
+	ReclaimStateAggregationSetsCmd *redis.Script
+	DeleteExpiredCompletedTasksCmd *redis.Script
 )
 
 const (
-	enqueueCmd              = "enqueue"
-	enqueueUniqueCmd        = "enqueue_unique"
-	dequeueCmd              = "dequeue"
-	doneCmd                 = "done"
-	doneUniqueCmd           = "done_unique"
-	markAsCompleteCmd       = "mark_as_completed"
-	markAsCompleteUniqueCmd = "mark_as_completed_unique"
-	requeueCmd              = "requeue"
-	addToGroupCmd           = "add_to_group"
-	addToGroupUniqueCmd     = "add_to_group_unique"
-	scheduleCmd             = "schedule"
-	scheduleUniqueCmd       = "schedule_unique"
-	retryCmd                = "retry"
-	archiveCmd              = "archive"
-	forwardCmd              = "forward"
+	enqueueCmd                     = "enqueue"
+	enqueueUniqueCmd               = "enqueue_unique"
+	dequeueCmd                     = "dequeue"
+	doneCmd                        = "done"
+	doneUniqueCmd                  = "done_unique"
+	markAsCompleteCmd              = "mark_as_completed"
+	markAsCompleteUniqueCmd        = "mark_as_completed_unique"
+	requeueCmd                     = "requeue"
+	addToGroupCmd                  = "add_to_group"
+	addToGroupUniqueCmd            = "add_to_group_unique"
+	scheduleCmd                    = "schedule"
+	scheduleUniqueCmd              = "schedule_unique"
+	retryCmd                       = "retry"
+	archiveCmd                     = "archive"
+	forwardCmd                     = "forward"
+	aggregationCheckCmd            = "aggregation_check"
+	readAggregationSetCmd          = "read_aggregate_set"
+	deleteAggregationSetCmd        = "delete_aggregation_set"
+	reclaimStateAggregationSetsCmd = "reclaim_state_aggregation_sets"
+	deleteExpiredCompletedTasksCmd = "delete_expired_completed_tasks"
 )
 
 func init() {
@@ -152,6 +162,31 @@ func init() {
 	}
 
 	ForwardCmd, err = loadLuaScript(forwardCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	AggregationCheckCmd, err = loadLuaScript(aggregationCheckCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	ReadAggregationSetCmd, err = loadLuaScript(readAggregationSetCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	DeleteAggregationSetCmd, err = loadLuaScript(deleteAggregationSetCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	ReclaimStateAggregationSetsCmd, err = loadLuaScript(reclaimStateAggregationSetsCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	DeleteExpiredCompletedTasksCmd, err = loadLuaScript(deleteExpiredCompletedTasksCmd)
 	if err != nil {
 		panic(err)
 	}

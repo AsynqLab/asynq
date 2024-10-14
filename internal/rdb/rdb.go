@@ -521,89 +521,6 @@ func (r *RDB) ListGroups(queueName string) ([]string, error) {
 	return groups, nil
 }
 
-// aggregationCheckCmd checks the given group for whether to create an aggregation set.
-// An aggregation set is created if one of the aggregation criteria is met:
-// 1) group has reached or exceeded its max size
-// 2) group's oldest task has reached or exceeded its max delay
-// 3) group's latest task has reached or exceeded its grace period
-// if aggregation criteria is met, the command moves those tasks from the group
-// and put them in an aggregation set. Additionally, if the creation of aggregation set
-// empties the group, it will clear the group name from the all groups set.
-//
-// KEYS[1] -> asynq:{<queueName>}:g:<gname>
-// KEYS[2] -> asynq:{<queueName>}:g:<gname>:<aggregation_set_id>
-// KEYS[3] -> asynq:{<queueName>}:aggregation_sets
-// KEYS[4] -> asynq:{<queueName>}:groups
-// -------
-// ARGV[1] -> max group size
-// ARGV[2] -> max group delay in unix time
-// ARGV[3] -> start time of the grace period
-// ARGV[4] -> aggregation set expire time
-// ARGV[5] -> current time in unix time
-// ARGV[6] -> group name
-//
-// Output:
-// Returns 0 if no aggregation set was created
-// Returns 1 if an aggregation set was created
-//
-// Time Complexity:
-// O(log(N) + M) with N being the number tasks in the group zset
-// and M being the max size.
-var aggregationCheckCmd = redis.NewScript(`
-local size = redis.call("ZCARD", KEYS[1])
-if size == 0 then
-	return 0
-end
-local maxSize = tonumber(ARGV[1])
-if maxSize ~= 0 and size >= maxSize then
-	local res = redis.call("ZRANGE", KEYS[1], 0, maxSize-1, "WITHSCORES")
-	for i=1, table.getn(res)-1, 2 do
-		redis.call("ZADD", KEYS[2], tonumber(res[i+1]), res[i])
-	end
-	redis.call("ZREMRANGEBYRANK", KEYS[1], 0, maxSize-1)
-	redis.call("ZADD", KEYS[3], ARGV[4], KEYS[2])
-	if size == maxSize then
-		redis.call("SREM", KEYS[4], ARGV[6])
-	end
-	return 1
-end
-local maxDelay = tonumber(ARGV[2])
-local currentTime = tonumber(ARGV[5])
-if maxDelay ~= 0 then
-	local oldestEntry = redis.call("ZRANGE", KEYS[1], 0, 0, "WITHSCORES")
-	local oldestEntryScore = tonumber(oldestEntry[2])
-	local maxDelayTime = currentTime - maxDelay
-	if oldestEntryScore <= maxDelayTime then
-		local res = redis.call("ZRANGE", KEYS[1], 0, maxSize-1, "WITHSCORES")
-		for i=1, table.getn(res)-1, 2 do
-			redis.call("ZADD", KEYS[2], tonumber(res[i+1]), res[i])
-		end
-		redis.call("ZREMRANGEBYRANK", KEYS[1], 0, maxSize-1)
-		redis.call("ZADD", KEYS[3], ARGV[4], KEYS[2])
-		if size <= maxSize or maxSize == 0 then
-			redis.call("SREM", KEYS[4], ARGV[6])
-		end
-		return 1
-	end
-end
-local latestEntry = redis.call("ZREVRANGE", KEYS[1], 0, 0, "WITHSCORES")
-local latestEntryScore = tonumber(latestEntry[2])
-local gracePeriodStartTime = currentTime - tonumber(ARGV[3])
-if latestEntryScore <= gracePeriodStartTime then
-	local res = redis.call("ZRANGE", KEYS[1], 0, maxSize-1, "WITHSCORES")
-	for i=1, table.getn(res)-1, 2 do
-		redis.call("ZADD", KEYS[2], tonumber(res[i+1]), res[i])
-	end
-	redis.call("ZREMRANGEBYRANK", KEYS[1], 0, maxSize-1)
-	redis.call("ZADD", KEYS[3], ARGV[4], KEYS[2])
-	if size <= maxSize or maxSize == 0 then
-		redis.call("SREM", KEYS[4], ARGV[6])
-	end
-	return 1
-end
-return 0
-`)
-
 // Task aggregation should finish within this timeout.
 // Otherwise, an aggregation set should be reclaimed by the recoverer.
 const aggregationTimeout = 2 * time.Minute
@@ -633,7 +550,7 @@ func (r *RDB) AggregationCheck(queueName, gname string, t time.Time, gracePeriod
 		t.Unix(),
 		gname,
 	}
-	n, err := r.runScriptWithErrorCode(context.Background(), op, aggregationCheckCmd, keys, argv...)
+	n, err := r.runScriptWithErrorCode(context.Background(), op, script.AggregationCheckCmd, keys, argv...)
 	if err != nil {
 		return "", err
 	}
@@ -647,32 +564,13 @@ func (r *RDB) AggregationCheck(queueName, gname string, t time.Time, gracePeriod
 	}
 }
 
-// KEYS[1] -> asynq:{<queueName>}:g:<gname>:<aggregation_set_id>
-// ------
-// ARGV[1] -> task key prefix
-//
-// Output:
-// Array of encoded task messages
-//
-// Time Complexity:
-// O(N) with N being the number of tasks in the aggregation set.
-var readAggregationSetCmd = redis.NewScript(`
-local msgs = {}
-local ids = redis.call("ZRANGE", KEYS[1], 0, -1)
-for _, id in ipairs(ids) do
-	local key = ARGV[1] .. id
-	table.insert(msgs, redis.call("HGET", key, "msg"))
-end
-return msgs
-`)
-
 // ReadAggregationSet retrieves members of an aggregation set and returns a list of tasks in the set and
 // the deadline for aggregating those tasks.
 func (r *RDB) ReadAggregationSet(queueName, gname, setID string) ([]*base.TaskMessage, time.Time, error) {
 	var op errors.Op = "RDB.ReadAggregationSet"
 	ctx := context.Background()
 	aggSetKey := base.AggregationSetKey(queueName, gname, setID)
-	res, err := readAggregationSetCmd.Run(ctx, r.client,
+	res, err := script.ReadAggregationSetCmd.Run(ctx, r.client,
 		[]string{aggSetKey}, base.TaskKeyPrefix(queueName)).Result()
 	if err != nil {
 		return nil, time.Time{}, errors.E(op, errors.Unknown, fmt.Sprintf("redis eval error: %v", err))
@@ -696,27 +594,6 @@ func (r *RDB) ReadAggregationSet(queueName, gname, setID string) ([]*base.TaskMe
 	return msgs, time.Unix(int64(deadlineUnix), 0), nil
 }
 
-// KEYS[1] -> asynq:{<queueName>}:g:<gname>:<aggregation_set_id>
-// KEYS[2] -> asynq:{<queueName>}:aggregation_sets
-// -------
-// ARGV[1] -> task key prefix
-//
-// Output:
-// Redis status reply
-//
-// Time Complexity:
-// max(O(N), O(log(M))) with N being the number of tasks in the aggregation set
-// and M being the number of elements in the all-aggregation-sets list.
-var deleteAggregationSetCmd = redis.NewScript(`
-local ids = redis.call("ZRANGE", KEYS[1], 0, -1)
-for _, id in ipairs(ids)  do
-	redis.call("DEL", ARGV[1] .. id)
-end
-redis.call("DEL", KEYS[1])
-redis.call("ZREM", KEYS[2], KEYS[1])
-return redis.status_reply("OK")
-`)
-
 // DeleteAggregationSet deletes the aggregation set and its members identified by the parameters.
 func (r *RDB) DeleteAggregationSet(ctx context.Context, queueName, gname, setID string) error {
 	var op errors.Op = "RDB.DeleteAggregationSet"
@@ -724,48 +601,16 @@ func (r *RDB) DeleteAggregationSet(ctx context.Context, queueName, gname, setID 
 		base.AggregationSetKey(queueName, gname, setID),
 		base.AllAggregationSets(queueName),
 	}
-	return r.runScript(ctx, op, deleteAggregationSetCmd, keys, base.TaskKeyPrefix(queueName))
+	return r.runScript(ctx, op, script.DeleteAggregationSetCmd, keys, base.TaskKeyPrefix(queueName))
 }
-
-// KEYS[1] -> asynq:{<queueName>}:aggregation_sets
-// -------
-// ARGV[1] -> current time in unix time
-var reclaimStateAggregationSetsCmd = redis.NewScript(`
-local staleSetKeys = redis.call("ZRANGEBYSCORE", KEYS[1], "-inf", ARGV[1])
-for _, key in ipairs(staleSetKeys) do
-	local idx = string.find(key, ":[^:]*$")
-	local groupKey = string.sub(key, 1, idx-1)
-	local res = redis.call("ZRANGE", key, 0, -1, "WITHSCORES")
-	for i=1, table.getn(res)-1, 2 do
-		redis.call("ZADD", groupKey, tonumber(res[i+1]), res[i])
-	end
-	redis.call("DEL", key)
-end
-redis.call("ZREMRANGEBYSCORE", KEYS[1], "-inf", ARGV[1])
-return redis.status_reply("OK")
-`)
 
 // ReclaimStaleAggregationSets checks for any stale aggregation sets in the given queue, and
 // reclaim tasks in the stale aggregation set by putting them back in the group.
 func (r *RDB) ReclaimStaleAggregationSets(ctx context.Context, queueName string) error {
 	var op errors.Op = "RDB.ReclaimStaleAggregationSets"
-	return r.runScript(ctx, op, reclaimStateAggregationSetsCmd,
+	return r.runScript(ctx, op, script.ReclaimStateAggregationSetsCmd,
 		[]string{base.AllAggregationSets(queueName)}, r.clock.Now().Unix())
 }
-
-// KEYS[1] -> asynq:{<queueName>}:completed
-// ARGV[1] -> current time in unix time
-// ARGV[2] -> task key prefix
-// ARGV[3] -> batch size (i.e. maximum number of tasks to delete)
-//
-// Returns the number of tasks deleted.
-var deleteExpiredCompletedTasksCmd = redis.NewScript(`
-local ids = redis.call("ZRANGEBYSCORE", KEYS[1], "-inf", ARGV[1], "LIMIT", 0, tonumber(ARGV[3]))
-for _, id in ipairs(ids) do
-	redis.call("DEL", ARGV[2] .. id)
-	redis.call("ZREM", KEYS[1], id)
-end
-return table.getn(ids)`)
 
 // DeleteExpiredCompletedTasks checks for any expired tasks in the given queue's completed set,
 // and delete all expired tasks.
@@ -791,7 +636,7 @@ func (r *RDB) deleteExpiredCompletedTasks(ctx context.Context, queueName string,
 		base.TaskKeyPrefix(queueName),
 		batchSize,
 	}
-	res, err := deleteExpiredCompletedTasksCmd.Run(ctx, r.client, keys, argv...).Result()
+	res, err := script.DeleteExpiredCompletedTasksCmd.Run(ctx, r.client, keys, argv...).Result()
 	if err != nil {
 		return 0, errors.E(op, errors.Internal, fmt.Sprintf("redis eval error: %v", err))
 	}
