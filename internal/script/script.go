@@ -64,6 +64,11 @@ var (
 	DeleteAggregationSetCmd        *redis.Script
 	ReclaimStateAggregationSetsCmd *redis.Script
 	DeleteExpiredCompletedTasksCmd *redis.Script
+	ListLeaseExpiredCmd            *redis.Script
+	WriteServerStateCmd            *redis.Script
+	ClearServerStateCmd            *redis.Script
+	WriteSchedulerEntriesCmd       *redis.Script
+	RecordSchedulerEnqueueEventCmd *redis.Script
 )
 
 const (
@@ -87,6 +92,11 @@ const (
 	deleteAggregationSetCmd        = "delete_aggregation_set"
 	reclaimStateAggregationSetsCmd = "reclaim_state_aggregation_sets"
 	deleteExpiredCompletedTasksCmd = "delete_expired_completed_tasks"
+	listLeaseExpiredCmd            = "list_lease_expired"
+	writeServerStateCmd            = "write_server_state"
+	clearServerStateCmd            = "clear_server_state"
+	writeSchedulerEntriesCmd       = "write_scheduler_entries"
+	recordSchedulerEnqueueEventCmd = "record_scheduler_enqueue_event"
 )
 
 func init() {
@@ -187,6 +197,31 @@ func init() {
 	}
 
 	DeleteExpiredCompletedTasksCmd, err = loadLuaScript(deleteExpiredCompletedTasksCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	ListLeaseExpiredCmd, err = loadLuaScript(listLeaseExpiredCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	WriteServerStateCmd, err = loadLuaScript(writeServerStateCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	ClearServerStateCmd, err = loadLuaScript(clearServerStateCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	WriteSchedulerEntriesCmd, err = loadLuaScript(writeSchedulerEntriesCmd)
+	if err != nil {
+		panic(err)
+	}
+
+	RecordSchedulerEnqueueEventCmd, err = loadLuaScript(recordSchedulerEnqueueEventCmd)
 	if err != nil {
 		panic(err)
 	}

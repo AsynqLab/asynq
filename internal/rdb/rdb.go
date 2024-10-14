@@ -647,28 +647,12 @@ func (r *RDB) deleteExpiredCompletedTasks(ctx context.Context, queueName string,
 	return n, nil
 }
 
-// KEYS[1] -> asynq:{<queueName>}:lease
-// ARGV[1] -> cutoff in unix time
-// ARGV[2] -> task key prefix
-var listLeaseExpiredCmd = redis.NewScript(`
-local res = {}
-local ids = redis.call("ZRANGEBYSCORE", KEYS[1], "-inf", ARGV[1])
-for _, id in ipairs(ids) do
-	local key = ARGV[2] .. id
-	local v = redis.call("HGET", key, "msg")
-	if v then
-		table.insert(res, v)
-	end
-end
-return res
-`)
-
 // ListLeaseExpired returns a list of task messages with an expired lease from the given queues.
 func (r *RDB) ListLeaseExpired(ctx context.Context, cutoff time.Time, queueNames ...string) ([]*base.TaskMessage, error) {
 	var op errors.Op = "rdb.ListLeaseExpired"
 	var msgs []*base.TaskMessage
 	for _, queueName := range queueNames {
-		res, err := listLeaseExpiredCmd.Run(ctx, r.client,
+		res, err := script.ListLeaseExpiredCmd.Run(ctx, r.client,
 			[]string{base.LeaseKey(queueName)},
 			cutoff.Unix(), base.TaskKeyPrefix(queueName)).Result()
 		if err != nil {
@@ -706,22 +690,6 @@ func (r *RDB) ExtendLease(ctx context.Context, queueName string, ids ...string) 
 	return expireAt, nil
 }
 
-// KEYS[1]  -> asynq:servers:{<host:pid:sid>}
-// KEYS[2]  -> asynq:workers:{<host:pid:sid>}
-// ARGV[1]  -> TTL in seconds
-// ARGV[2]  -> server info
-// ARGV[3:] -> alternate key-value pair of (worker id, worker data)
-// Note: Add key to ZSET with expiration time as score.
-// ref: https://github.com/antirez/redis/issues/135#issuecomment-2361996
-var writeServerStateCmd = redis.NewScript(`
-redis.call("SETEX", KEYS[1], ARGV[1], ARGV[2])
-redis.call("DEL", KEYS[2])
-for i = 3, table.getn(ARGV)-1, 2 do
-	redis.call("HSET", KEYS[2], ARGV[i], ARGV[i+1])
-end
-redis.call("EXPIRE", KEYS[2], ARGV[1])
-return redis.status_reply("OK")`)
-
 // WriteServerState writes server state data to redis with expiration set to the value ttl.
 func (r *RDB) WriteServerState(info *base.ServerInfo, workers []*base.WorkerInfo, ttl time.Duration) error {
 	var op errors.Op = "rdb.WriteServerState"
@@ -747,15 +715,8 @@ func (r *RDB) WriteServerState(info *base.ServerInfo, workers []*base.WorkerInfo
 	if err := r.client.ZAdd(ctx, base.AllWorkers, redis.Z{Score: float64(exp.Unix()), Member: wkey}).Err(); err != nil {
 		return errors.E(op, errors.Unknown, &errors.RedisCommandError{Command: "zadd", Err: err})
 	}
-	return r.runScript(ctx, op, writeServerStateCmd, []string{skey, wkey}, args...)
+	return r.runScript(ctx, op, script.WriteServerStateCmd, []string{skey, wkey}, args...)
 }
-
-// KEYS[1] -> asynq:servers:{<host:pid:sid>}
-// KEYS[2] -> asynq:workers:{<host:pid:sid>}
-var clearServerStateCmd = redis.NewScript(`
-redis.call("DEL", KEYS[1])
-redis.call("DEL", KEYS[2])
-return redis.status_reply("OK")`)
 
 // ClearServerState deletes server state data from redis.
 func (r *RDB) ClearServerState(host string, pid int, serverID string) error {
@@ -769,19 +730,8 @@ func (r *RDB) ClearServerState(host string, pid int, serverID string) error {
 	if err := r.client.ZRem(ctx, base.AllWorkers, wkey).Err(); err != nil {
 		return errors.E(op, errors.Internal, &errors.RedisCommandError{Command: "zrem", Err: err})
 	}
-	return r.runScript(ctx, op, clearServerStateCmd, []string{skey, wkey})
+	return r.runScript(ctx, op, script.ClearServerStateCmd, []string{skey, wkey})
 }
-
-// KEYS[1]  -> asynq:schedulers:{<schedulerID>}
-// ARGV[1]  -> TTL in seconds
-// ARGV[2:] -> schedler entries
-var writeSchedulerEntriesCmd = redis.NewScript(`
-redis.call("DEL", KEYS[1])
-for i = 2, #ARGV do
-	redis.call("LPUSH", KEYS[1], ARGV[i])
-end
-redis.call("EXPIRE", KEYS[1], ARGV[1])
-return redis.status_reply("OK")`)
 
 // WriteSchedulerEntries writes scheduler entries data to redis with expiration set to the value ttl.
 func (r *RDB) WriteSchedulerEntries(schedulerID string, entries []*base.SchedulerEntry, ttl time.Duration) error {
@@ -801,7 +751,7 @@ func (r *RDB) WriteSchedulerEntries(schedulerID string, entries []*base.Schedule
 	if err != nil {
 		return errors.E(op, errors.Unknown, &errors.RedisCommandError{Command: "zadd", Err: err})
 	}
-	return r.runScript(ctx, op, writeSchedulerEntriesCmd, []string{key}, args...)
+	return r.runScript(ctx, op, script.WriteSchedulerEntriesCmd, []string{key}, args...)
 }
 
 // ClearSchedulerEntries deletes scheduler entries data from redis.
@@ -841,15 +791,6 @@ func (r *RDB) PublishCancellation(id string) error {
 	return nil
 }
 
-// KEYS[1] -> asynq:scheduler_history:<entryID>
-// ARGV[1] -> enqueued_at timestamp
-// ARGV[2] -> serialized SchedulerEnqueueEvent data
-// ARGV[3] -> max number of events to be persisted
-var recordSchedulerEnqueueEventCmd = redis.NewScript(`
-redis.call("ZREMRANGEBYRANK", KEYS[1], 0, -ARGV[3])
-redis.call("ZADD", KEYS[1], ARGV[1], ARGV[2])
-return redis.status_reply("OK")`)
-
 // Maximum number of enqueue events to store per entry.
 const maxEvents = 1000
 
@@ -869,7 +810,7 @@ func (r *RDB) RecordSchedulerEnqueueEvent(entryID string, event *base.SchedulerE
 		data,
 		maxEvents,
 	}
-	return r.runScript(ctx, op, recordSchedulerEnqueueEventCmd, keys, argv...)
+	return r.runScript(ctx, op, script.RecordSchedulerEnqueueEventCmd, keys, argv...)
 }
 
 // ClearSchedulerHistory deletes the enqueue event history for the given scheduler entry.
